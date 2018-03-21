@@ -83,14 +83,14 @@ def plot_and_fit(ax, plane, color='b'):
     c = cx /np.linalg.norm(cx)
     p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
     p1 = np.array([X[-1,0],Y[-1,0],Z[-1,0]])
-    p2 = np.array([X[0,-1],Y[0,-1],Z[0,-1]])
-    p3 = np.array([X[-1,-1],Y[-1,-1],Z[-1,-1]])
+    p3 = np.array([X[0,-1],Y[0,-1],Z[0,-1]])
+    p2 = np.array([X[-1,-1],Y[-1,-1],Z[-1,-1]])
     plot_line(ax,p0+avg,c,color,'o')
     plot_line(ax,p1+avg,c,color,'s')
     plot_line(ax,p2+avg,c,color,'*')
     plot_line(ax,p3+avg,c,color,'d')
-    v0 = p1-p0
-    v1 = p3-p0
+    v0 = p2-p0
+    v1 = p3-p1
     nrm = np.cross(v0,v1)
     nrm = nrm/np.linalg.norm(nrm)
     plot_line(ax,avg,c,color,'o')
@@ -102,7 +102,7 @@ def plot_and_fit(ax, plane, color='b'):
     #ax_3d.set_zlim(-1,1)
     ax.axis('equal')
 
-    return c, avg, nrm
+    return c, avg, np.array([p0,p1,p2,p3])
 #%%
 import numpy.linalg as la
 
@@ -119,5 +119,24 @@ def find_rotation(a,b):
     r = I + vx + (vx * vx) * (1-c) / (s*s)
     return r
     
+#%%
+def rotate_cloud(cloud):
+    X,Y = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
+    C, avg = fit_plane(cloud)
+    Z = C[0]*X + C[1]*Y + C[2]
+    p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
+    p1 = np.array([X[-1,0],Y[-1,0],Z[-1,0]])
+    p2 = np.array([X[-1,-1],Y[-1,-1],Z[-1,-1]])
+    p3 = np.array([X[0,-1],Y[0,-1],Z[0,-1]])
+    v0 = p2-p0
+    v1 = p3-p1
+    nrm = np.cross(v0,v1)
+    nrm = nrm/np.linalg.norm(nrm)
+
+    target = np.array([0,0,1]); 
+    rot = find_rotation(nrm, target);
+    
+    result = rot * (cloud-avg).transpose();
+    return np.array(result.transpose())
 
     
