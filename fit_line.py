@@ -63,9 +63,9 @@ ax_3d.set_zlabel('Z')
 ax_3d.axis('equal')
 
 #%%
-def plot_line(ax,p0,v,color='b'):
+def plot_line(ax,p0,v,color='b',m=''):
     ax.plot([p0[0],p0[0]+v[0]], [p0[1], p0[1]+v[1]], [p0[2], p0[2]+v[2]],
-               c=color)
+               c=color,marker=m)
     
     
 
@@ -80,19 +80,29 @@ def plot_and_fit(ax, plane, color='b'):
     ax.plot_surface(X+avg[0], Y+avg[1], Z+avg[2], rstride=1, cstride=1, alpha=0.2,
                    color=color)
     cx = C; #np.array([C[2],C[0],C[1]])
-    c = cx/np.linalg.norm(cx)
-    plot_line(ax,avg,c,color)
-    #plot_line(ax,[X[0,0],Y[0,0],Z[0,0]],c,color)
-    plot_line(ax,plane[0],c,color)
-    plot_line(ax,plane[-1],c,color)
+    c = cx /np.linalg.norm(cx)
+    p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
+    p1 = np.array([X[-1,0],Y[-1,0],Z[-1,0]])
+    p2 = np.array([X[0,-1],Y[0,-1],Z[0,-1]])
+    p3 = np.array([X[-1,-1],Y[-1,-1],Z[-1,-1]])
+    plot_line(ax,p0+avg,c,color,'o')
+    plot_line(ax,p1+avg,c,color,'s')
+    plot_line(ax,p2+avg,c,color,'*')
+    plot_line(ax,p3+avg,c,color,'d')
+    v0 = p1-p0
+    v1 = p3-p0
+    nrm = np.cross(v0,v1)
+    nrm = nrm/np.linalg.norm(nrm)
+    plot_line(ax,avg,c,color,'o')
+    plot_line(ax,avg,nrm,color,'*')
 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax_3d.set_zlim(-1,1)
+    #ax_3d.set_zlim(-1,1)
     ax.axis('equal')
 
-    return c, avg
+    return c, avg, nrm
 #%%
 import numpy.linalg as la
 
