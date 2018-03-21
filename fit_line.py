@@ -44,25 +44,7 @@ def fit_plane(data_):
     return C, avg
         
 #%%
-Y,Z = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
 
-C, avg = fit_plane(plane)
-
-X = C[0]*Y + C[1]*Z + C[2]
-
-ax_3d.cla()
-ax_3d.plot_surface(X+avg[0], Y+avg[2], Z+avg[1], rstride=1, cstride=1, alpha=0.2)
-#ax_3d.scatter(plane[:,0], plane[:,2], plane[:,1], c='b', s=50)
-ax_3d.scatter(lineLL[:,0], lineLL[:,1], lineLL[:,2], c='r', s=50)
-ax_3d.scatter(lineUL[:,0], lineUL[:,1], lineUL[:,2], c='c', s=50)
-ax_3d.scatter(lineLR[:,0], lineLR[:,1], lineLR[:,2], c='y', s=50)
-ax_3d.scatter(lineUR[:,0], lineUR[:,1], lineUR[:,2], c='g', s=50)
-ax_3d.set_xlabel('X')
-ax_3d.set_ylabel('Y')
-ax_3d.set_zlabel('Z')
-ax_3d.axis('equal')
-
-#%%
 def plot_line(ax,p0,v,color='b',m=''):
     ax.plot([p0[0],p0[0]+v[0]], [p0[1], p0[1]+v[1]], [p0[2], p0[2]+v[2]],
                c=color,marker=m)
@@ -121,7 +103,9 @@ def find_rotation(a,b):
     
 #%%
 def rotate_cloud(cloud):
+    new_axes = np.array([1,2,0]);
     X,Y = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
+    cloud = cloud[:,new_axes]
     C, avg = fit_plane(cloud)
     Z = C[0]*X + C[1]*Y + C[2]
     p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
@@ -136,7 +120,10 @@ def rotate_cloud(cloud):
     target = np.array([0,0,1]); 
     rot = find_rotation(nrm, target);
     
-    result = rot * (cloud-avg).transpose();
-    return np.array(result.transpose())
+    #result = rot * ((cloud-avg).transpose());
+    result = (cloud-avg)*rot.transpose();
+    
+    filt = np.array(abs(result[:,2]) < 0.04).flatten();
+    return np.array(result[filt,:])
 
     
