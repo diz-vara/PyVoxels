@@ -7,7 +7,7 @@ Created on Mon Mar 19 14:12:16 2018
 
 import csv
 import numpy as np
-import matpotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitalization! 
 
 def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected\\'):
