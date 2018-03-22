@@ -13,6 +13,8 @@ import scipy.linalg
 import cv2
 import numpy.linalg as la
 
+import read_csv
+
 def fit_line(line_points, step = 0.1):
     num_points = line_points.shape[0]
     A = np.concatenate((line_points, np.ones((num_points,1))), axis=1)
@@ -51,27 +53,6 @@ def plot_line(ax,p0,v,color='b',m=''):
                c=color,marker=m)
     
     
-#%%
-def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected\\'):
-
-    fname = base_dir + '\\{:06}.csv'.format(cloud_num)
-    with open (fname) as csvfile:
-        pclreader = csv.reader(csvfile, delimiter = ',')
-        points = []
-        for row in pclreader:
-            pnt = np.array([float(p) for p in row])
-            points.append(pnt)
-        
-    cloud = np.array(points)        
-    return cloud
-    
-    
-        
-def scatt3d(ax, cloud, clear = True, color = 'g'):
-    cl = np.array(cloud)
-    if (clear):
-        ax.cla()    
-    ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], c = color)       
     
 #%%
 def plot_and_fit(ax, plane, color='b'):
