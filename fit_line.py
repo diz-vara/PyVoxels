@@ -5,9 +5,13 @@ Created on Thu Mar 15 14:14:49 2018
 @author: avarfolomeev
 """
 
-import scipy.linalg
+import csv
 import numpy as np
-
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitali
+import scipy.linalg
+import cv2
+import numpy.linalg as la
 
 def fit_line(line_points, step = 0.1):
     num_points = line_points.shape[0]
@@ -20,16 +24,13 @@ def fit_line(line_points, step = 0.1):
 def fit_line_svd(line_points):
      points = line_points.copy()
      avg = np.mean(points,0)
-     _,_,V = np.linalg.svd(points)
+     _,_,V = la.svd(points)
      direction = V[:,1]
      t = np.linspace(-1,1,21)
      P = [avg + tt*direction for tt in t]
      
   
 #%%
-
-import scipy.linalg
-import numpy as np
 
 #calculates 
 def fit_plane(data_):
@@ -50,7 +51,28 @@ def plot_line(ax,p0,v,color='b',m=''):
                c=color,marker=m)
     
     
+#%%
+def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected\\'):
 
+    fname = base_dir + '\\{:06}.csv'.format(cloud_num)
+    with open (fname) as csvfile:
+        pclreader = csv.reader(csvfile, delimiter = ',')
+        points = []
+        for row in pclreader:
+            pnt = np.array([float(p) for p in row])
+            points.append(pnt)
+        
+    cloud = np.array(points)        
+    return cloud
+    
+    
+        
+def scatt3d(ax, cloud, clear = True, color = 'g'):
+    cl = np.array(cloud)
+    if (clear):
+        ax.cla()    
+    ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], c = color)       
+    
 #%%
 def plot_and_fit(ax, plane, color='b'):
     scatt3d(ax,plane,False,color)
@@ -102,10 +124,10 @@ def find_rotation(a,b):
     return r
     
 #%%
-def rotate_cloud(cloud):
-    new_axes = np.array([1,2,0]);
+#calculates cloud-plane rotation to horizontal (x-y) plane,
+#returns middle-point and rotation matrix
+def get_cloud_rotation(cloud):
     X,Y = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
-    cloud = cloud[:,new_axes]
     C, avg = fit_plane(cloud)
     Z = C[0]*X + C[1]*Y + C[2]
     p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
@@ -119,11 +141,87 @@ def rotate_cloud(cloud):
 
     target = np.array([0,0,1]); 
     rot = find_rotation(nrm, target);
-    
-    #result = rot * ((cloud-avg).transpose());
+    return avg, rot    
+
+def rotate_cloud(cloud,avg,rot):
     result = (cloud-avg)*rot.transpose();
     
     filt = np.array(abs(result[:,2]) < 0.04).flatten();
     return np.array(result[filt,:])
 
+#%%
+def get_box(rotated_cloud):
+        flat_cloud = rotated_cloud[:,:2].astype(np.float32)
+        bounding_rect=cv2.minAreaRect(flat_cloud)
+        box=cv2.boxPoints(bounding_rect)
+        return box
+        
+#returns rotation point (bottom--left)        
+def get_box_rotation(box):
+
+    p0 = bottom_left(box)
+    p1 = top_left(box)    
+        
+    a = np.append(p1-p0,0)
+    b = np.array([0.,1.,0.])
     
+    rot = find_rotation(b,a)
+    
+    return np.append(p0,0),rot
+
+
+def bottom_left(box):
+        p0 = [1e9, 1e9];
+        for p in box:
+            if p[0] < p0[0] and p[1] < p0[1]:
+                p0 = p
+        return p0
+        
+def top_left(box):
+        p0 = [1e9, -1e9];
+        for p in box:
+            if p[0] < p0[0] and p[1] > p0[1]:
+                p0 = p
+        return p0
+        
+#%%
+def calc_cloud_grid(num,ax=None):
+    cloud = read_cloud_csv(num)
+    new_axes = np.array([1,2,0]);
+    cloud = cloud[:,new_axes]
+    
+    avg, rot = get_cloud_rotation(cloud)
+    
+    flat = rotate_cloud(cloud,avg,rot)
+    
+    box = get_box(flat)
+    
+    p0,box_rot = get_box_rotation(box)
+    
+    markers = np.arange(0.14,0.56,0.04)
+    grid = np.array([(i,j,0)  for i in markers for j in markers])
+    
+    #first rotation - to flat box
+    rotated_grid = grid*box_rot.transpose()+p0
+    
+    #second rotation - to the original box image
+    rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
+    
+
+    old_axes = np.array([2,0,1])
+    
+    o_cloud = cloud[:,old_axes]
+    o_rotated_grid = rotated_grid[:,old_axes]    
+
+    if (ax):
+        scatt3d(ax,o_cloud,True,'b')
+        scatt3d(ax,o_rotated_grid,False,'r')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        #ax_3d.set_zlim(-1,1)
+        #ax.axis('equal')
+
+    return o_cloud, o_rotated_grid
+     
+   
