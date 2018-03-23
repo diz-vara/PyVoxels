@@ -169,11 +169,11 @@ def top_left(box):
 def calc_cloud_grid(num,ax=None):
     cloud = read_cloud_csv(num)
     new_axes = np.array([1,2,0]);
-    cloud = cloud[:,new_axes]
+    n_cloud = cloud[:,new_axes]
     
-    avg, rot = get_cloud_rotation(cloud)
+    avg, rot = get_cloud_rotation(n_cloud)
     
-    flat = rotate_cloud(cloud,avg,rot)
+    flat = rotate_cloud(n_cloud,avg,rot)
     
     box = get_box(flat)
     
@@ -191,18 +191,43 @@ def calc_cloud_grid(num,ax=None):
 
     old_axes = np.array([2,0,1])
     
-    o_cloud = cloud[:,old_axes]
+    #o_cloud = cloud[:,old_axes]
     o_rotated_grid = rotated_grid[:,old_axes]    
 
     if (ax):
-        scatt3d(ax,o_cloud,True,'b')
+        scatt3d(ax,cloud,True,'b')
         scatt3d(ax,o_rotated_grid,False,'r')
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        ax.invert_yaxis();
         #ax_3d.set_zlim(-1,1)
         #ax.axis('equal')
 
-    return o_cloud, o_rotated_grid
+    return cloud, o_rotated_grid
      
+#%%
+num=570
+c,g = calc_cloud_grid(704)
+imgname = 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\{:010d}.png'.format(num)
+
+
+img = cv2.imread(imgname,-1)
+grey=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+ret,corners=cv2.findChessboardCorners(grey,(11,11))
+corners = corners[:,0,:]
+
+#120- ... for 704!!!
+idx = np.array([row + i for i in range(11) for row in np.arange(0,121,11)])
+corn2 = corners[idx,:]
+
+ret, rot, t = cv2.solvePnP(g,corn2,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
+
+res_name = "rot_t_{:04d}.p".format(num)
+pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+
+
+#%%
+
    
