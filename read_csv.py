@@ -25,8 +25,26 @@ def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selecte
     
     
         
-def scatt3d(ax, cloud, clear = True, color = 'g'):
-    cl = np.array(cloud)
+def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=3):
+    cloud = np.array(cloud)
     if (clear):
         ax.cla()    
-    ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], c = color)       
+    if (len(cloud.shape) < 2):
+        cloud = np.expand_dims(cloud,0)
+    ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], 
+                 c = color, 
+                 marker=marker,
+                 s=size)
+
+
+def scatt2d(ax, cloud, clear = False, color = 'g', marker = 'o', size=3):
+    cloud = np.array(cloud)
+    if (clear):
+        ax.cla()    
+    if (len(cloud.shape) < 2):
+        cloud = np.expand_dims(cloud,0)
+    ax.scatter(cloud[:,0], cloud[:,1], 
+                 c = color, 
+                 marker=marker,
+                 s=size)
+
