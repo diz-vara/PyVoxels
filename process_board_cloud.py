@@ -42,8 +42,9 @@ def fit_plane(data_):
     for i in range(data.shape[0]):
         data[i] = data[i] - avg
 
-    A = np.c_[data[:,0], data[:,1], np.ones(data.shape[0])]
-    C,_,_,_ = scipy.linalg.lstsq(A, data[:,2])    # coefficients
+    #fit X against Y-Z  plane!!!
+    A = np.c_[data[:,1], data[:,2], np.ones(data.shape[0])]
+    C,_,_,_ = scipy.linalg.lstsq(A, data[:,0])    # coefficients
     return C, avg
         
 #%%
@@ -108,9 +109,10 @@ def find_rotation(a,b):
 #calculates cloud-plane rotation to horizontal (x-y) plane,
 #returns middle-point and rotation matrix
 def get_cloud_rotation(cloud):
-    X,Y = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
+    Y,Z = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
     C, avg = fit_plane(cloud)
-    Z = C[0]*X + C[1]*Y + C[2]
+    X = C[0]*Y + C[1]*Z + C[2]
+
     p0 = np.array([X[0,0],Y[0,0],Z[0,0]])
     p1 = np.array([X[-1,0],Y[-1,0],Z[-1,0]])
     p2 = np.array([X[-1,-1],Y[-1,-1],Z[-1,-1]])
@@ -120,19 +122,19 @@ def get_cloud_rotation(cloud):
     nrm = np.cross(v0,v1)
     nrm = nrm/np.linalg.norm(nrm)
 
-    target = np.array([0,0,1]); 
+    target = np.array([1,0,0]); 
     rot = find_rotation(nrm, target);
     return avg, rot    
 
 def rotate_cloud(cloud,avg,rot):
     result = (cloud-avg)*rot.transpose();
     
-    filt = np.array(abs(result[:,2]) < 0.04).flatten();
+    filt = np.array(abs(result[:,0]) < 0.04).flatten();
     return np.array(result[filt,:])
 
 #%%
 def get_box(rotated_cloud):
-        flat_cloud = rotated_cloud[:,:2].astype(np.float32)
+        flat_cloud = rotated_cloud[:,1:].astype(np.float32)
         bounding_rect=cv2.minAreaRect(flat_cloud)
         box=cv2.boxPoints(bounding_rect)
         return box
@@ -143,12 +145,12 @@ def get_box_rotation(box):
     p0 = bottom_left(box)
     p1 = top_left(box)    
         
-    a = np.append(p1-p0,0)
-    b = np.array([0.,1.,0.])
+    a = np.append(0,p1-p0)
+    b = np.array([0.,0.,1.])
     
     rot = find_rotation(b,a)
     
-    return np.append(p0,0),rot
+    return np.append(0,p0),rot
 
 
 def bottom_left(box):
@@ -168,8 +170,8 @@ def top_left(box):
 #%%
 def calc_cloud_grid(num,ax=None):
     cloud = read_cloud_csv(num)
-    new_axes = np.array([1,2,0]);
-    n_cloud = cloud[:,new_axes]
+    #new_axes = np.array([1,2,0]);
+    n_cloud = cloud #[:,new_axes]
     
     avg, rot = get_cloud_rotation(n_cloud)
     
@@ -180,7 +182,7 @@ def calc_cloud_grid(num,ax=None):
     p0,box_rot = get_box_rotation(box)
     
     markers = np.arange(0.14,0.56,0.04)
-    grid = np.array([(i,j,0)  for i in markers for j in markers])
+    grid = np.array([(0,i,j)  for i in markers for j in markers])
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
@@ -189,10 +191,10 @@ def calc_cloud_grid(num,ax=None):
     rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
     
 
-    old_axes = np.array([2,0,1])
+    #old_axes = np.array([2,0,1])
     
     #o_cloud = cloud[:,old_axes]
-    o_rotated_grid = rotated_grid[:,old_axes]    
+    o_rotated_grid = rotated_grid #[:,old_axes]    
 
     if (ax):
         scatt3d(ax,cloud,True,'b')
