@@ -50,18 +50,26 @@ def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
         ax.cla()    
     if (len(cloud.shape) < 2):
         cloud = np.expand_dims(cloud,0)
+    
+        
+    if (not color):
+        color = np.arange(cloud.shape[0])
     ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], 
                  c = color, 
                  marker=marker,
                  s=size,edgecolors='face')
 
 
-def scatt2d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
+def scatt2d(ax, cloud, clear = False, color = None, marker = 'o', size=25):
     cloud = np.array(cloud)
     if (clear):
         ax.cla()    
     if (len(cloud.shape) < 2):
         cloud = np.expand_dims(cloud,0)
+
+    #color sequence    
+    if (not color):
+        color = np.arange(cloud.shape[0])
     ax.scatter(cloud[:,0], cloud[:,1], 
                  c = color, 
                  marker=marker,
@@ -73,4 +81,26 @@ def draw(img, corners, imgpts):
     img = cv2.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
     img = cv2.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
     return img
+#%%
+def read_image(num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\'):
+    imgname = base_dir + '{:010d}.png'.format(num)
+    img = cv2.imread(imgname,-1)
+    return img
     
+    
+ #%%
+def find_image_corners(num,ax = None):
+    img = read_image(num, 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\')
+    grey=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    ret,corners=cv2.findChessboardCorners(grey,(11,11))
+    
+    if (not ret):
+        corners = None
+    else:
+        corners = corners[:,0,:]
+    if (ax):
+        cv2.drawChessboardCorners(img,(11,11), corners, ret)
+        ax.imshow(grey,cmap='gray')
+    return corners    
+
+   
