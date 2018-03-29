@@ -228,18 +228,19 @@ def calc_cloud_grid(num,ax=None):
     return cloud, sorted_grid
      
 #%%
-num=570
-c,g = calc_cloud_grid(num)
-
-
-corners = find_image_corners(num)[:,0,:]
-
-
-ret, rot, t = cv2.solvePnP(g,corn2,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
-imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
-
-res_name = "rot_t_{:04d}.p".format(num)
-pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+if 0:
+    num=570
+    c,g = calc_cloud_grid(num)
+    
+    
+    corners = find_image_corners(num)[:,0,:]
+    
+    
+    ret, rot, t = cv2.solvePnP(g,corn2,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+    imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
+    
+    res_name = "rot_t_{:04d}.p".format(num)
+    pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
 
 
 #%%

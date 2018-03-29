@@ -58,6 +58,13 @@ def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
                  c = color, 
                  marker=marker,
                  s=size,edgecolors='face')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    left_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
+    right_border = np.floor( min(cloud[:,1]) * 5.) / 5.
+    ax.set_ylim(left_border, right_border)
+    
 
 
 def scatt2d(ax, cloud, clear = False, color = None, marker = 'o', size=25):
