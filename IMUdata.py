@@ -12,7 +12,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pyquaternion import Quaternion
+
 import math
+from toQuaternion import toQuaternion
+
 
 import navpy
 
@@ -22,7 +25,7 @@ IMUstruct_string = 'BBBBiixxxxdddddddddddddddddddii';
 _billion = 1000000000;
 
 def unpack_IMUdata(data):
-    keys = [
+    imu_keys = [
     'bIMU', 'bFix', 'bTwist', 'bTimeRef', 
     'ts_s', 'ts_ns',
     'Qx', 'Qy', 'Qz', 'Qw',
@@ -33,7 +36,7 @@ def unpack_IMUdata(data):
     'TwAx', 'TwAy', 'TwAz', 
     'Tref_s', 'Tref_ns']
     a = struct.unpack(IMUstruct_string,data);
-    d = dict(zip(keys,a));
+    d = dict(zip(imu_keys,a));
 
     if (not d['bFix']):
         d['Lat'] = d['Lon'] = d['Alt'] = None;
@@ -52,6 +55,37 @@ def unpack_IMUdata(data):
         
     return d
 
+def pack_IMUdata(data):
+    t = data['time']
+    ts_s = int(t)
+    ts_ns = int((t-ts_s)* _billion)
+    q = toQuaternion(np.radians([data['imu_roll'],
+                                data['imu_pitch'],
+                                data['imu_yaw']]))
+
+    
+    
+    s= struct.pack(IMUstruct_string, 
+                   True, True, False, True,
+                   ts_s, ts_ns,
+                   q[0],q[1],q[2],q[3],
+                   0.,0.,0.,
+                   0.,0.,0.,
+                   data['lat'], data['lon'], data['alt_a'],
+                   0.,0.,0.,
+                   0.,0.,0.,
+                   ts_s, ts_ns
+                   )
+    return s    
+    
+    
+def write_IMUdata_from_NMEA(data, filename):
+    outfile = open(filename,'wb')
+    for d in data:
+        s = pack_IMUdata(d);
+        outfile.write(s)
+       
+    outfile.close();    
     
     
 def read_IMUdata(path):  
