@@ -37,7 +37,7 @@ def week_seconds_to_utc(gpsweek,gpsseconds,leapseconds):
     elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
     return (epoch+elapsed).timestamp()
 
-def read_pwrpak_log(fname):
+def read_pwrpak_log(nmea_dir):
     
     point0 = {'time':0., 'lat':0., 'lon':0., 'alt_a':0., 'alt_g':0., 'quality':0.,
              'bl_north':0., 'bl_east':0., 'bl_up':0, 'bl_length':0., 'bl_course':0., 'bl_pitch':0.,
@@ -51,9 +51,18 @@ def read_pwrpak_log(fname):
     points = []
     point = point0.copy();
     cnt = np.zeros(20)
+    
+    fname = nmea_dir + '/NMEA_sentence.txt'
+    tsname = nmea_dir + '/timestamps.txt'
+
+    tsfile = open(tsname)
     with open (fname) as csvfile:
         pclreader = csv.reader(csvfile, delimiter = ',', skipinitialspace=True)
         for row in pclreader:
+            tstr = tsfile.readline().split('.')
+            ts_s = int(tstr[0])
+            ts_ns = int(tstr[1])
+            ros_ts = ROS_ts(ts_s, ts_ns)
             if ( '$--GPGGA' in row):
                 #process GGA sentence
                 time = hms2seconds(float(row[1]))
@@ -158,7 +167,7 @@ def read_pwrpak_log(fname):
                 point['imu_pitch'] = float(row[10])
                 point['imu_yaw'] = float(row[11])
                 points.append(point)
-            elif ('#INSPVAXA' in row):
+            elif ('#INSPVAXA__' in row):
                 point = point0.copy()
                 # week seconds lat lon alt Nvel Evel Uvel Roll Pith Azim 
                 week = int(row[5])
@@ -251,11 +260,30 @@ def read_pwrpak_log(fname):
             elif ('#RXCONFIGA' in row):
                 week = 0                
                 cnt[8] += 1
-                
+            elif ('%INSPVASA' in row):
+                point = point0.copy()
+                # week seconds lat lon alt Nvel Evel Uvel Roll Pith Azim 
+                # I use week from the short header
+                week = int(row[1])
+                #but seconds from the message body
+                seconds = float(row[3])
+                ts = week_seconds_to_utc(week,seconds,0)     
+                print (row[3],seconds, ts)
+                # LEAP SECONDS !!!!
+                point['time'] = ros_ts.double();
+                point['lat'] = float(row[4])
+                point['lon'] = float(row[5])
+                point['alt_a'] = float(row[6])
+
+                point['imu_roll'] = float(row[10])
+                point['imu_pitch'] = float(row[11])
+                point['imu_yaw'] = float(row[12])
+                points.append(point)
+                cnt[9] += 1
             else:
                 print ('[[' + row[0] + ']]')
-                row = next(pclreader)
-                cnt[9] += 1
+                #row = next(pclreader)
+                cnt[10] += 1
 
                 
                 
