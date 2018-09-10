@@ -3,8 +3,10 @@
 Created on Thu Mar 29 16:41:03 2018
 
 @author: avarfolomeev
+from https://www.learnopencv.com/rotation-matrix-to-euler-angles/
 """
 import math
+import numpy as np
 
 def isRotationMatrix(R) :
     Rt = np.transpose(R)
@@ -33,3 +35,52 @@ def rotationMatrixToEulerAngles(R) :
 
     return np.array([x, y, z])
 
+# Calculates Rotation Matrix given euler angles. [rpy]
+## z-y-x!!!
+def eulerAnglesToRotationMatrix(theta) :
+     
+    R_x = np.array([[1,         0,                  0                   ],
+                    [0,         math.cos(theta[0]), -math.sin(theta[0]) ],
+                    [0,         math.sin(theta[0]), math.cos(theta[0])  ]
+                    ])
+         
+         
+    
+                     
+    R_y = np.array([[math.cos(theta[1]),    0,      math.sin(theta[1])  ],
+                    [0,                     1,      0                   ],
+                    [-math.sin(theta[1]),   0,      math.cos(theta[1])  ]
+                    ])
+                 
+    R_z = np.array([[math.cos(theta[2]),    -math.sin(theta[2]),    0],
+                    [math.sin(theta[2]),    math.cos(theta[2]),     0],
+                    [0,                     0,                      1]
+                    ])
+                     
+                     
+    R = np.dot(R_z, np.dot( R_y, R_x ))
+ 
+    return np.matrix(R)
+    
+
+#%%    
+def remove_yaw(rm):
+    eul = rotationMatrixToEulerAngles(rm); #xyz in Z-Y-X (ext) order
+    angle = [0,0, 0-eul[2]];
+
+    return ( eulerAnglesToRotationMatrix(angle) * rm);
+
+
+# Inputs:
+#  road_to_lidar - what I've measured on the road
+#  imu -        - IMU rotation for that frame      
+def get_imu_to_lidar_rotation(world_to_lidar, world_to_imu):
+    world_to_lidar_no_yaw = remove_yaw(world_to_lidar);
+    world_to_imu_no_yaw = remove_yaw(world_to_imu);
+    imu_to_lidar = np.matmul(world_to_imu_no_yaw.transpose(),world_to_lidar )
+    return imu_to_lidar;
+    
+#%%
+def rm_to_degrees(rm):
+    return (np.degrees(rotationMatrixToEulerAngles(rm))) 
+    
