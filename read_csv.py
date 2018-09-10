@@ -10,7 +10,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitalization! 
 import cv2
+from pyquaternion import Quaternion
+import struct
 
+
+
+#%%
 def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected\\'):
 
     fname = base_dir + '\\{:06}.csv'.format(cloud_num)
@@ -18,14 +23,29 @@ def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selecte
         pclreader = csv.reader(csvfile, delimiter = ',')
         points = []
         for row in pclreader:
-            pnt = np.array([float(p) for p in row])
-            points.append(pnt)
-        
-    cloud = np.array(points)     
-    cloud[:,1] = cloud[:,1] * -1
-    return cloud
-    
+            if ( 'Orientation:' in row):
+                break;
+            if (len(row) == 3):    
+                pnt = np.array([float(p) for p in row])
+                points.append(pnt)
 
+        if ( 'Orientation:' in row):
+            d = {}
+            for row in pclreader:
+                d[row[0].split()[0][0]]=float(row[0].split()[1])
+            q = Quaternion(w=d['w'], x = d['x'], y = d['y'], z = d['z'])
+            #print(q)    
+        else:
+            q=None
+                
+
+    cloud = np.array(points)     
+    #if (len(cloud) > 1):
+    #    cloud[:,1] = cloud[:,1] * -1
+        
+    return cloud,q
+    
+#%%
 
 def read_full_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\London-cal1_drive_0015_sync\\velodyne_points\\csv'):
 
@@ -61,9 +81,9 @@ def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    left_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
-    right_border = np.floor( min(cloud[:,1]) * 5.) / 5.
-    ax.set_ylim(left_border, right_border)
+    #right_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
+    #left_border = np.floor( min(cloud[:,1]) * 5.) / 5.
+    #ax.set_ylim(left_border, right_border)
     
 
 
@@ -111,3 +131,42 @@ def find_image_corners(num,ax = None):
     return corners    
 
    
+#%%
+def read_timed_points(points_file, points_n = -1):
+    
+    point_format = 'ffff'
+    point_size = struct.calcsize(point_format)
+    
+    points_num = os.path.getsize(points_file)/point_size;
+
+    if (points_n > 0 and points_n < points_num):
+        points_num = points_n;
+
+    step = points_num//1000;
+
+    
+
+    pts = []
+    cnt = 0;        
+    with open(points_file,'rb') as p_file:
+        while(cnt < points_num):
+            buf = p_file.read(point_size);
+            if (len(buf) < point_size):
+                break;
+            x,y,z,time = struct.unpack(point_format,buf);
+            pnt = np.array([x,y,z,time]);
+            pts.append(pnt);
+            cnt += 1;
+            if (cnt%step == 0):
+                print(int(cnt*100/points_num),"%")
+
+    return np.array(pts);
+
+
+#%%
+
+def filter_points(cloud, limits):
+    fo =  ((cloud[:,2] > limits[2,0]) & (cloud[:,1]<limits[1,1]) & (cloud[:,1] > limits[1,0]) & (cloud[:,0] > limits[0,0]) & (cloud[:,0] < limits[0,1]) & (cloud[:,2] < limits[2,1]) )    
+    return cloud[fo,:]
+
+    
