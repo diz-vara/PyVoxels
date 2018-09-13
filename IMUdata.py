@@ -60,15 +60,15 @@ def pack_IMUdata(data):
     ts_s = int(t)
     ts_ns = int((t-ts_s)* _billion)
     q = toQuaternion(np.radians([data['imu_roll'],
-                                data['imu_pitch'],
-                                data['imu_yaw']]))
+                                 data['imu_pitch'],
+                                 data['imu_yaw']]))
 
     
     
     s= struct.pack(IMUstruct_string, 
                    True, True, False, True,
                    ts_s, ts_ns,
-                   q[0],q[1],q[2],q[3],
+                   q[1],q[2], q[3], q[0],
                    0.,0.,0.,
                    0.,0.,0.,
                    data['lat'], data['lon'], data['alt_a'],

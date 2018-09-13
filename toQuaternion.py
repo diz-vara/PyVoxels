@@ -23,13 +23,13 @@ def toQuaternion(yaw, pitch, roll):
 	return Quaternion(w,x,y,z);
 
 
-def toQuaternion(ypr):
-	cy = np.cos(ypr[0] * 0.5);
-	sy = np.sin(ypr[0] * 0.5);
-	cr = np.cos(ypr[2] * 0.5);
-	sr = np.sin(ypr[2] * 0.5);
-	cp = np.cos(ypr[1] * 0.5);
-	sp = np.sin(ypr[1] * 0.5);
+def toQuaternion(rpy):
+	cy = np.cos(rpy[2] * 0.5);
+	sy = np.sin(rpy[2] * 0.5);
+	cr = np.cos(rpy[0] * 0.5);
+	sr = np.sin(rpy[0] * 0.5);
+	cp = np.cos(rpy[1] * 0.5);
+	sp = np.sin(rpy[1] * 0.5);
 
 	w = cy * cr * cp + sy * sr * sp;
 	x = cy * sr * cp - sy * cr * sp;
