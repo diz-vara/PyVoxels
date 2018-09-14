@@ -42,23 +42,23 @@ def week_seconds_to_utc(gpsweek,gpsseconds,leapseconds):
 #%%
 def read_ggaex_log(ggax_file):
     
-    point0 = {'time':0., 'lat':0., 'lon':0., 'alt_a':0., 'alt_g':0., 'quality':0.,
-             'bl_north':0., 'bl_east':0., 'bl_up':0, 'bl_length':0., 'bl_course':0., 'bl_pitch':0.,
+    point0 = {'time':0., 'lat':0., 'lon':0., 'alt_a':0., 'alt_g':0., 
+              'quality':0.,
+             'bl_north':0., 'bl_east':0., 'bl_up':0, 'bl_length':0., 
+             'bl_course':0., 'bl_pitch':0.,
              'year':0, 'month':0, 'day':0,
              'rmc_course':-1., 'true_course':-1.,
-             'imu_roll':0., 'imu_pitch':0., 'imu_yaw':0.}
+             'imu_roll':0., 'imu_pitch':0., 'imu_yaw':0., 
+             'g_time':0., 'l_time':0.,
+             'accX':0, 'accY':0, 'accZ':0}
              
-    imu0 = {'time':0, 'accX':0, 'accY':0, 'accZ':0,
-               'gyrX':0, 'gyrY':0, 'gyrZ':0}
-
-    imu = []           
     points = []
     cnt = 0
 
     with open (ggax_file) as csvfile:
         pclreader = csv.reader(csvfile, delimiter = ',', skipinitialspace=True)
         for row in pclreader:
-            if ("$GPGGAEX" in row):
+            if ("$GPGGAEX" in row or "$GPGGAEX1" in row):
                 point = point0.copy()
                 time = float(row[1])
                 point['time'] = time
@@ -74,23 +74,29 @@ def read_ggaex_log(ggax_file):
                 point['alt_g'] = float(row[11])
                 point['quality'] = int(row[6])
 
-                roll_str = row[20].split('*')[0];
-                point['imu_roll'] = float( roll_str )
+                
+                point['imu_roll'] = float( row[20] )
                 point['imu_pitch'] = float(row[19])
                 point['imu_yaw'] = float(row[18])
                 points.append(point)
 
+
+                seconds = float(row[22])
+                week = float(row[23])
+                point['time'] = week_seconds_to_utc(week,seconds,0)  
                 
-                _imu = imu0.copy()
-                _imu['time'] = time
                 
-                _imu['accZ'] = float(row[15])
-                _imu['accY'] = float(row[16])
-                _imu['accX'] = float(row[17])
-                imu.append(_imu)
+                sec_str = row[25].split('*')[0];
+                local_sec = float(sec_str)
+                point['l_time'] = week_seconds_to_utc(week,local_sec,0);  
+                
+                
+                point['accZ'] = float(row[15])
+                point['accY'] = float(row[16])
+                point['accX'] = float(row[17])
                 cnt += 1
 
-    return points, imu
+    return points
                
 #%%
 def read_pwrpak_log(fname):
