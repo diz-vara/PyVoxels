@@ -76,8 +76,8 @@ def read_ggaex_log(ggax_file):
 
                 
                 point['imu_roll'] = float( row[20] )
-                point['imu_pitch'] = float(row[19])
-                point['imu_yaw'] = float(row[18])
+                point['imu_pitch'] = -float(row[19])
+                point['imu_yaw'] = float(row[18])-90
                 points.append(point)
 
 
@@ -177,8 +177,8 @@ def read_pwrpak_log(fname):
                     point['time'] = time;
 
                 point['imu_roll'] = float(row[2])
-                point['imu_pitch'] = float(row[3])
-                point['imu_yaw'] = float(row[4])                
+                point['imu_pitch'] = -float(row[3])
+                point['imu_yaw'] = float(row[4])-90                
                 print (row[0], row[1])
             elif  ('$PNVGBLS' in row):
                 #process PNVGBLS
@@ -218,8 +218,8 @@ def read_pwrpak_log(fname):
                 point['lon'] = float(row[4])
                 point['alt_a'] = float(row[5])
                 point['imu_roll'] = float(row[9])
-                point['imu_pitch'] = float(row[10])
-                point['imu_yaw'] = float(row[11])
+                point['imu_pitch'] = -float(row[10])
+                point['imu_yaw'] = float(row[11])-90
                 points.append(point)
             elif ('#INSPVAXA__' in row):
                 point = point0.copy()
@@ -236,8 +236,8 @@ def read_pwrpak_log(fname):
                 point['alt_t'] = float(row[14])
 
                 point['imu_roll'] = float(row[18])
-                point['imu_pitch'] = float(row[19])
-                point['imu_yaw'] = float(row[20])
+                point['imu_pitch'] = -float(row[19])
+                point['imu_yaw'] = float(row[20])-90
                 points.append(point)
                 cnt[0] += 1
             elif ('%RAWIMUSXA' in row or '[COM1]%RAWIMUSXA' in row):
@@ -348,8 +348,8 @@ def read_pwrpak_log(fname):
                 point['alt_a'] = float(row[6])
 
                 point['imu_roll'] = float(row[10])
-                point['imu_pitch'] = float(row[11])
-                point['imu_yaw'] = float(row[12])
+                point['imu_pitch'] = -float(row[11])
+                point['imu_yaw'] = float(row[12])-90
                 points.append(point)
                 cnt[9] += 1
                 
@@ -451,8 +451,8 @@ def read_pwrpak_dir(nmea_dir):
                     point['time'] = time;
 
                 point['imu_roll'] = float(row[2])
-                point['imu_pitch'] = float(row[3])
-                point['imu_yaw'] = float(row[4])                
+                point['imu_pitch'] = -float(row[3])
+                point['imu_yaw'] = float(row[4])-90                
                 print (row[0], row[1])
             elif  ('$PNVGBLS' in row):
                 #process PNVGBLS
@@ -492,8 +492,8 @@ def read_pwrpak_dir(nmea_dir):
                 point['lon'] = float(row[4])
                 point['alt_a'] = float(row[5])
                 point['imu_roll'] = float(row[9])
-                point['imu_pitch'] = float(row[10])
-                point['imu_yaw'] = float(row[11])
+                point['imu_pitch'] = -float(row[10])
+                point['imu_yaw'] = float(row[11])-90
                 points.append(point)
             elif ('--#INSPVAXA' in row):
                 point = point0.copy()
@@ -510,8 +510,8 @@ def read_pwrpak_dir(nmea_dir):
                 point['alt_t'] = float(row[14])
 
                 point['imu_roll'] = float(row[18])
-                point['imu_pitch'] = float(row[19])
-                point['imu_yaw'] = float(row[20])
+                point['imu_pitch'] = -float(row[19])
+                point['imu_yaw'] = float(row[20])-90
                 points.append(point)
                 cnt[0] += 1
             elif ('%RAWIMUSXA' in row or '[COM1]%RAWIMUSXA' in row):
@@ -604,8 +604,8 @@ def read_pwrpak_dir(nmea_dir):
                 point['alt_a'] = float(row[6])
 
                 point['imu_roll'] = float(row[10])
-                point['imu_pitch'] = float(row[11])
-                point['imu_yaw'] = float(row[12])
+                point['imu_pitch'] = -float(row[11])
+                point['imu_yaw'] = float(row[12])-90
                 points.append(point)
                 cnt[9] += 1
                 
@@ -683,17 +683,21 @@ def nvs2lla_course(nvs):
 
 
 
-def plot_courses(ax, enu_course, num, bImu = False, bBl = False, len = 100, corr=0):
+def plot_courses(ax, enu_course, num, bImu = False, bBl = False, len_ = 100, corr=0):
     x0 = enu_course[num][0]
     y0 = enu_course[num][1]
 
     #
     #rmc_course=np.radians(enu_course[num][5]) * -1
     bl_course=np.radians(enu_course[num+corr][4]-90)  * -1
-    imu_course=np.radians(enu_course[num+corr][8]) * -1
+                         
+                         
+    imu_rm=eulerAnglesToRotationMatrix( np.radians([ 0, 0, enu_course[num+corr][8]]))
+    pt1 = np.matrix([len_,0,0])*imu_rm
+    
 
-    x1_ = 0
-    y1_ = len
+    x1_ = len_
+    y1_ = 0
     #x1_rmc = x0 + x1_ * np.cos(rmc_course) - y1_ * np.sin(rmc_course)
     #y1_rmc = y0 + x1_ * np.sin(rmc_course) + y1_ * np.cos(rmc_course)
     #ax.plot([x0,x1_rmc], [y0,y1_rmc],color='r')
@@ -705,8 +709,8 @@ def plot_courses(ax, enu_course, num, bImu = False, bBl = False, len = 100, corr
         ax.plot([x0,x1_bl], [y0,y1_bl],color='g')
     
     if (bImu):
-        x1_imu = x0 + x1_ * np.cos(imu_course) - y1_ * np.sin(imu_course)
-        y1_imu = y0 + x1_ * np.sin(imu_course) + y1_ * np.cos(imu_course)
-        ax.plot([x0,x1_imu], [y0,y1_imu],color='r')
+        #x1_imu = x0 + x1_ * np.cos(imu_course) - y1_ * np.sin(imu_course)
+        #y1_imu = y0 + x1_ * np.sin(imu_course) + y1_ * np.cos(imu_course)
+        ax.plot([x0,x0 + pt1[0,0]], [y0,y0 + pt1[0,1]],color='r')
     
         
