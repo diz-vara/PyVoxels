@@ -1,2 +1,6 @@
 *.pyc
 /temp_results/
+*.txt
+*.imu
+*.p
+*.csv
