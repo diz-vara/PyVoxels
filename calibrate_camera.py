@@ -23,7 +23,7 @@ def calcCorners(nx,ny, sqSide = 40):
     return np.array(objCorners, dtype=np.float32)      
 
 
-def calibrate(cal_dir = './camera_cal', nx=9, ny=6):
+def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
     
     #we can skip it here, but for real calibration FAST_CHECK is important!!
     flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
@@ -47,6 +47,8 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6):
     for entry in os.scandir(cal_dir):
         if entry.is_file():
             img = cv2.imread(entry.path)
+            if (not table is None):
+                img = cv2.LUT(img, table)
             img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
             shape = img.shape[0:2]
             _nx = nx
@@ -81,4 +83,9 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6):
                                                  mtx, distCoeffs=dcf, 
                                                  flags = flagCalib)
     return ret, mtx, dist
-    
+
+#%%    
+def build_lut (invgamma):
+    table = np.array([ ((i/255.0) ** invgamma) * 255 for i in np.arange(0,256)]).astype("uint8")    
+    return table
+   
