@@ -110,14 +110,15 @@ def draw(img, corners, imgpts):
     return img
 #%%
 def read_image(num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\'):
-    imgname = base_dir + '{:010d}.png'.format(num)
+    imgname = base_dir + '{:06d}.jpg'.format(num)
+    print(imgname)
     img = cv2.imread(imgname,-1)
     return img
     
     
  #%%
 def find_image_corners(num,ax = None):
-    img = read_image(num, 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\')
+    img = read_image(num, base_dir='e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam_2\\')
     grey=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     ret,corners=cv2.findChessboardCorners(grey,(11,11))
     

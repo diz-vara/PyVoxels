@@ -22,12 +22,12 @@ def calcCorners(nx,ny, sqSide = 40):
             objCorners.append([x,y,0.0])
     return np.array(objCorners, dtype=np.float32)      
 
-
+#%%
 def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
     
     #we can skip it here, but for real calibration FAST_CHECK is important!!
     flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
-    flagCorners = flagCorners | cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_FILTER_QUADS
+    #flagCorners = flagCorners | cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_FILTER_QUADS
     #enable additional coefficients
     flagCalib = 0
     #flagCalib = flagCalib | cv2.CALIB_RATIONAL_MODEL
@@ -43,6 +43,7 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
             
     imgPoints = []
     objPoints = []        
+    files = []
     #read images and try to find corneres in each of them        
     for entry in os.scandir(cal_dir):
         if entry.is_file():
@@ -55,6 +56,7 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
             _ny = ny
             ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
             print(entry.name, ret)
+            #plt.imshow(img, cmap = 'gray')
             #if (not ret):
             #    _ny = ny - 1
             #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
@@ -71,8 +73,10 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
                 print("adding ", entry.name, (_nx,_ny))
                 objPoints.append(calcCorners(_nx,_ny))
                 imgPoints.append(corners)
+                files.append(entry.path)
                 
-            
+    #return files, np.array(imgPoints)
+
     #objPoints = np.array(objPoints, dtype=np.float32)            
     #imgPoints = np.array(imgPoints)            
     #all corners found - build calibration matrix and 
@@ -89,3 +93,10 @@ def build_lut (invgamma):
     table = np.array([ ((i/255.0) ** invgamma) * 255 for i in np.arange(0,256)]).astype("uint8")    
     return table
    
+#%%
+def onclick(event):
+    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          ('double' if event.dblclick else 'single', event.button,
+           event.x, event.y, event.xdata, event.ydata))
+
+    

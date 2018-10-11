@@ -109,7 +109,7 @@ def find_rotation(a,b):
 #calculates cloud-plane rotation to horizontal (x-y) plane,
 #returns middle-point and rotation matrix
 def get_cloud_rotation(cloud):
-    Y,Z = np.meshgrid(np.arange(-.5, .5, 0.1), np.arange(-.5, .5, 0.1))
+    Y,Z = np.meshgrid(np.arange(-1, 1.01, 0.1), np.arange(-1, 1.01, 0.1))
     C, avg = fit_plane(cloud)
     X = C[0]*Y + C[1]*Z + C[2]
 
@@ -130,7 +130,7 @@ def get_cloud_rotation(cloud):
 def rotate_cloud(cloud,avg,rot):
     result = (cloud-avg)*rot.transpose();
     
-    filt = np.array(abs(result[:,0]) < 0.04).flatten();
+    filt = np.array(abs(result[:,0]) < 0.1).flatten();
     return np.array(result[filt,:])
 
 #%%
@@ -189,29 +189,39 @@ def sort_grid(rotated_grid):
     return (rotated_grid[idx])
     
 #%%
+
+def build_grid(sq_size, number, offset):
+    markers = np.arange(number) * sq_size + offset
+    markers = markers * 0.781
+    
+    grid = np.array([(0,i,j)  for i in markers for j in markers])
+    return grid
+    
+    
+#%%
 def calc_cloud_grid(num,ax=None):
-    cloud = read_cloud_csv(num)
+    cloud = read_cloud_csv(num,base_dir)[0]
     
-    avg, rot = get_cloud_rotation(cloud)
+    _avg, _rot = get_cloud_rotation(cloud)
     
-    flat = rotate_cloud(cloud,avg,rot)
+    flat = rotate_cloud(cloud,_avg,_rot)
     
     box = get_box(flat)
     
     p0,box_rot = get_box_rotation(box)
     
-    markers = np.arange(0.14,0.56,0.04)
-    grid = np.array([(0,i,j)  for i in markers for j in markers])
+    grid = build_grid(0.08, 11, 0.28)
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
     
     #second rotation - to the original box image
-    rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
+    rotated_grid = np.array(rotated_grid * _rot + _avg)
+    #rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
     
     sorted_grid = sort_grid(rotated_grid)
 
-
+    
     
     if (ax):
         scatt3d(ax,cloud,True,'#1f1f1f')
@@ -225,6 +235,9 @@ def calc_cloud_grid(num,ax=None):
         #ax_3d.set_zlim(-1,1)
         #ax.axis('equal')
 
+
+    #rotated_cloud = cloud * box_rot.transpose
+        
     return cloud, sorted_grid
      
 #%%
@@ -233,10 +246,10 @@ if 0:
     c,g = calc_cloud_grid(num)
     
     
-    corners = find_image_corners(num)[:,0,:]
+    corners = find_image_corners(num)
     
     
-    ret, rot, t = cv2.solvePnP(g,corn2,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+    ret, rot, t = cv2.solvePnP(g,corners,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
     imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
     
     res_name = "rot_t_{:04d}.p".format(num)
