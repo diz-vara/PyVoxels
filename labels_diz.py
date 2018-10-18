@@ -40,35 +40,35 @@ sLabel = namedtuple( 'Label' , [
 
 labels_diz = [
     #       name                id    color
-    sLabel(  'unlabeled'      ,  0 , (  0,  0,  0) ),
-    sLabel(  'sky'            ,  1 , ( 70,130,180) ),
-    sLabel(  'road'           ,  2 , (128, 64,128) ),
-    sLabel(  'sidewalk'       ,  3 , (244, 35,232) ),
+    sLabel(  'unlabeled'      ,  0 , (    0,    0,    0) ),
+    sLabel(  'sky'            ,  1 , ( 0x46, 0x82, 0xB4) ),
+    sLabel(  'road'           ,  2 , ( 0x80, 0x40, 0x80) ),
+    sLabel(  'sidewalk'       ,  3 , ( 0xF4, 0x23, 0xE8) ),
     # xu 4 -> 3
-    sLabel(  'Lane markers'   ,  5 , (255,255,140) ), #4
-    sLabel(  'Railway'        ,  6 , ( 55, 55, 55) ), #5
-    sLabel(  'Grass'          ,  7 , (152,251,152) ), #6
+    sLabel(  'Lane markers'   ,  5 , ( 0xff, 0xFF, 0x8C) ), #4
+    sLabel(  'Railway'        ,  6 , ( 0x37, 0x37, 0x37) ), #5
+    sLabel(  'Grass'          ,  7 , ( 0x98, 0xFB, 0x98) ), #6
     # xu 8 -> 9 sLabel(  'Tree'           ,  8 , (107,142, 35) ),
-    sLabel(  'Vegetation'     ,  9 , ( 50,142, 50) ), #7
-    sLabel(  'Building'       , 10 , ( 70, 70, 70) ), #8
-    sLabel(  'Bridge'         , 11 , (150,100,100) ), #9
-    sLabel(  'Construction'   , 12 , (153,153,153) ), #10
-    sLabel(  'Panel'          , 13 , (200,200,  0) ), #11
-    sLabel(  'traffic light'  , 14 , (250,170, 30) ), #12
+    sLabel(  'Vegetation'     ,  9 , ( 0x32, 0x8E, 0x32) ), #7
+    sLabel(  'Building'       , 10 , ( 0x46, 0x46, 0x46) ), #8
+    sLabel(  'Bridge'         , 11 , ( 0x96, 0x64, 0x64) ), #9
+    sLabel(  'Construction'   , 12 , ( 0x99, 0x99, 0x99) ), #10
+    sLabel(  'Panel'          , 13 , ( 0xC8, 0xC8,    0) ), #11
+    sLabel(  'traffic light'  , 14 , ( 0xFA, 0xAA, 0x1E) ), #12
     # xu 15 -> 12 sLabel(  'Fence'          , 15 , (210,153,153) ),
     # xu 16 -> 12 sLabel(  'Construction'   , 16 , (180,185,180) ),
-    sLabel(  'Transport'      , 17 , (  0,  0,142) ), #13
+    sLabel(  'Transport'      , 17 , (    0,    0, 0x8E) ), #13
     # xu 18-> 17 sLabel(  'Truck'          , 18 , (  0,  0, 70) ),
     #xu 19 -> 17 sLabel(  'Bus'            , 19 , (  0, 60,100) ),
     #xu 20 -> 17 sLabel(  'Train'          , 20 , (  0, 80,100) ),
-    sLabel(  'Pedestrian'     , 21 , (220, 20, 60) ), #14
+    sLabel(  'Pedestrian'     , 21 , (0xDC, 0x14, 0x3C) ), #14
     #xu 22 -> 21 sLabel(  'Children'       , 22 , (220, 20, 60) ),
-    sLabel(  'Rider'          , 23 , (255,  0,  0) ), #15
-    sLabel(  'bicycle'        , 24 , (119, 11, 32) ), #16
+    sLabel(  'Rider'          , 23 , (0xFF,    0,    0) ), #15
+    sLabel(  'bicycle'        , 24 , (0x77, 0x0B, 0x20) ), #16
     #xu 25 -> 23 sLabel(  'Motoryclist'    , 25 , (255,  0,  0) ),
     #xu 26 -> 24 sLabel(  'Motorcycle'     , 26 , (  0,  0,230) ),
-    sLabel(  'Animal'         , 27 , (250, 15, 50) ), #17
-    sLabel(  'Movable'        , 28 , (150, 50,  0) )  #18
+    sLabel(  'Animal'         , 27 , (0xFA, 0x0F, 0x32) ), #17
+    sLabel(  'Movable'        , 28 , (0x96, 0x32,    0) )  #18
 ]
 
 colors_diz = np.array([label.color for label in labels_diz]).astype(np.uint8)
