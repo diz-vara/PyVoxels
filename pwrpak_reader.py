@@ -60,8 +60,6 @@ def read_ggaex_log(ggax_file):
         for row in pclreader:
             if ("$GPGGAEX" in row or "$GPGGAEX1" in row):
                 point = point0.copy()
-                time = float(row[1])
-                point['time'] = time
                 lat = dm2degrees(float(row[2]))
                 if (row[3] != 'N'):
                     lat = -lat;
@@ -74,22 +72,13 @@ def read_ggaex_log(ggax_file):
                 point['alt_g'] = float(row[11])
                 point['quality'] = int(row[6])
 
-                
                 point['imu_roll'] = float( row[20] )
                 point['imu_pitch'] = -float(row[19])
                 point['imu_yaw'] = float(row[18])-90
                 points.append(point)
 
-
-                seconds = float(row[22])
-                week = float(row[23])
-                point['time'] = week_seconds_to_utc(week,seconds,0)  
-                
-                
-                sec_str = row[25].split('*')[0];
-                local_sec = float(sec_str)
-                point['l_time'] = week_seconds_to_utc(week,local_sec,0);  
-                
+                time_str = row[21].split('*')[0];
+                point['time'] = float(time_str)
                 
                 point['accZ'] = float(row[15])
                 point['accY'] = float(row[16])
