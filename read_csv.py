@@ -72,7 +72,7 @@ def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
         cloud = np.expand_dims(cloud,0)
     
         
-    if (not color):
+    if (color is None):
         color = np.arange(cloud.shape[0])
     ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], 
                  c = color, 
@@ -95,7 +95,7 @@ def scatt2d(ax, cloud, clear = False, color = None, marker = 'o', size=25):
         cloud = np.expand_dims(cloud,0)
 
     #color sequence    
-    if (not color):
+    if (color is None):
         color = np.arange(cloud.shape[0])
     ax.scatter(cloud[:,0], cloud[:,1], 
                  c = color, 
