@@ -192,7 +192,6 @@ def sort_grid(rotated_grid):
 
 def build_grid(sq_size, number, offset):
     markers = np.arange(number) * sq_size + offset
-    markers = markers * 0.781
     
     grid = np.array([(0,i,j)  for i in markers for j in markers])
     return grid
@@ -210,7 +209,7 @@ def calc_cloud_grid(num,ax=None):
     
     p0,box_rot = get_box_rotation(box)
     
-    grid = build_grid(0.08, 11, 0.28)
+    grid = build_grid(0.0597, 11, 0.211)
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
@@ -224,7 +223,8 @@ def calc_cloud_grid(num,ax=None):
     
     
     if (ax):
-        scatt3d(ax,cloud,True,'#1f1f1f')
+        scatt3d(ax,cloud,True,'#1f1f1f','o',3)
+        scatt3d(ax,[0,0,0],False)
         scatt3d(ax,sorted_grid,False,None,'d',49)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
