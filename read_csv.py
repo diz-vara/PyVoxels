@@ -117,8 +117,10 @@ def read_image(num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\'):
     
     
  #%%
-def find_image_corners(num,ax = None):
-    img = read_image(num, base_dir='e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam_2\\')
+def find_image_corners(num,base_dir=None,ax = None):
+    if (base_dir is None):
+        base_dir='E:\\Data\\Voxels\\London-cal1\\selected_raw\\'
+    img = read_image(num, base_dir)
     grey=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     ret,corners=cv2.findChessboardCorners(grey,(11,11))
     

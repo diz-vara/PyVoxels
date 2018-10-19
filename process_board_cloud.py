@@ -184,7 +184,7 @@ def sort_grid(rotated_grid):
     sign = np.sign(left_idx-top_idx)
     row_idx = np.arange(0, (left_idx-top_idx+sign), int((left_idx-top_idx+sign)/10))
     
-    idx = np.array([row + col for row in row_idx for col in col_idx])
+    idx = np.array([row + col for col in col_idx for row in row_idx])
     
     return (rotated_grid[idx])
     
@@ -198,7 +198,7 @@ def build_grid(sq_size, number, offset):
     
     
 #%%
-def calc_cloud_grid(num,ax=None):
+def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
     cloud = read_cloud_csv(num,base_dir)[0]
     
     _avg, _rot = get_cloud_rotation(cloud)
@@ -209,7 +209,10 @@ def calc_cloud_grid(num,ax=None):
     
     p0,box_rot = get_box_rotation(box)
     
-    grid = build_grid(0.0597, 11, 0.211)
+    if (London):
+        grid = build_grid(0.04, 11, 0.14)# - LONDON
+    else:
+        grid = build_grid(0.0597, 11, 0.211)
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
@@ -223,17 +226,19 @@ def calc_cloud_grid(num,ax=None):
     
     
     if (ax):
-        scatt3d(ax,cloud,True,'#1f1f1f','o',3)
+        scatt3d(ax,cloud,not overlay,'#1f1f1f','o',3)
         scatt3d(ax,[0,0,0],False)
         scatt3d(ax,sorted_grid,False,None,'d',49)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        left_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
-        right_border = np.floor( min(cloud[:,1]) * 5.) / 5.
-        ax.set_ylim(left_border, right_border)
+        #left_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
+        #right_border = np.floor( min(cloud[:,1]) * 5.) / 5.
+        #ax.set_ylim(right_border, left_border)
         #ax_3d.set_zlim(-1,1)
         #ax.axis('equal')
+        for i in range(len(sorted_grid)):
+            ax3.text(sorted_grid[i,0],sorted_grid[i,1],sorted_grid[i,2], str(i+1)  )
 
 
     #rotated_cloud = cloud * box_rot.transpose
@@ -257,5 +262,118 @@ if 0:
 
 
 #%%
+def draw_3d_board(cloud, ax=None):
+    if (not ax is None):
+        scatt3d(ax,cloud,True,'b','.',1)
+        scatt3d(ax,[0,0,0],False,'b','o',70)
 
+
+    _avg, _rot = get_cloud_rotation(cloud)
+    
+    
+    flat = rotate_cloud(cloud,_avg,_rot)
+    
+    box = get_box(flat)
+    
+    p0,box_rot = get_box_rotation(box)
+    grid = build_grid(0.0597, 11, 0.211)
+    
+    #first rotation - to flat box
+    rotated_grid = grid*box_rot.transpose()+p0
+    
+    #second rotation - to the original box image
+    rotated_grid = np.array(rotated_grid * _rot + _avg)
+    #rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
+    
+    sorted_grid = sort_grid(rotated_grid)
+
+    if (not ax is None):
+        scatt3d(ax,sorted_grid,False,None,'d',50)
+    
+        for i in range(len(sorted_grid)):
+            ax3.text(sorted_grid[i,0],sorted_grid[i,1],sorted_grid[i,2], str(i+1)  )
+
+    return sorted_grid
+    
+    
+#%%
+def calc_image_grid(num, base_dir,ax=None):
+    fname = base_dir + '/{:06}.png'.format(num)
+    print(fname);
+    return load_draw_2d_board(fname,ax)
+    
+
+def load_draw_2d_board(name, ax=None):
+    img = cv2.imread(name,-1)
+    return draw_2d_board(img, ax)
+    
+def draw_2d_board(img, ax=None):
+    if (not ax is None):
+        ax.cla()
+
+    #uimg=cv2.undistort(img,mtx,dist)
+
+    if (not ax is None):
+        ax.imshow(img)
+
+    corners = ( (img[:,:,0]<=0) & (img[:,:,1]<=0) & (img[:,:,2]> 254) )
+    corn_xy=np.nonzero(corners.transpose())
+    cxy=np.array(corn_xy).transpose().astype(np.float64)
+    
+    cxy_u = cv2.undistortPoints(np.array([cxy]),mtx,dist, R=mtx)[0]
+
+    #if (not ax is None):
+    #    scatt2d(ax,cxy_u, False, None, 'o',50)
+    
+    top_idx = np.argmin(cxy_u[:,1])
+    right_idx = np.argmax(cxy_u[:,0])
+    
+    top = cxy_u[top_idx]
+    cxy_u = cxy_u-top;
+    
+    right = cxy_u[right_idx]
+    angle = np.degrees(np.arcsin(right[1]/np.linalg.norm(right)))
+    rm = np.matrix(cv2.getRotationMatrix2D((0,0), -angle,1)[:,:2])
+    
+    
+    cxy_rot = np.array(cxy_u * rm);
+    
+    order = np.argsort(cxy_rot[:,1])
+    
+    final_order = np.array([]);
+    for i in np.arange(0,121,11):
+        row = cxy_rot[order[i:i+11]]
+        row_order = np.argsort(row[:,0])
+        final_order = np.append(final_order,order[row_order+i])
+    
+    
+    cxy_ret = cxy[final_order.astype(np.int32)]
+    
+    if (not ax is None):
+        scatt2d(ax, cxy_ret, False, None, 'd',30)
+    
+        for i in range(len(cxy_ret)):
+            ax.annotate(str(i+1),np.array(cxy_ret[i]))
    
+    return cxy_ret
+#%%
+
+clouds = np.empty((0,3),np.float64)
+boards = np.empty((0,2),np.float64)
+base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
+cloud_list = [1,2,3,4,5,7,8,9,10,11]
+
+
+for cl in cloud_list:
+    clouds=np.append(clouds, calc_cloud_grid(cl,base_dir)[1],0);
+    boards=np.append(boards, calc_image_grid(cl,base_dir),0)
+
+
+#%%    
+ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+    imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
+    
+    res_name = "rot_t_{:04d}.p".format(num)
+    pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+
+    
