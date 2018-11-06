@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitali
 import scipy.linalg
 import cv2
+
 import numpy.linalg as la
 
-import read_csv
+from read_csv import *
 
 def fit_line(line_points, step = 0.1):
     num_points = line_points.shape[0]
@@ -360,17 +361,25 @@ def draw_2d_board(img, ax=None):
 
 clouds = np.empty((0,3),np.float64)
 boards = np.empty((0,2),np.float64)
-base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
-cloud_list = [1,2,3,4,5,7,8,9,10,11]
+base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
+
+#for cam2_again cloud_list = [1,2,3,4,5,7,8,9,10,11]
+cloud_list = [1,3,4,5,7,8,11,16,18]
 
 
 for cl in cloud_list:
-    clouds=np.append(clouds, calc_cloud_grid(cl,base_dir)[1],0);
-    boards=np.append(boards, calc_image_grid(cl,base_dir),0)
+    _cloud = calc_cloud_grid(cl,base_dir)[1];
+    _board = calc_image_grid(cl,base_dir);
+
+    print (len(_cloud), len(_board))
+
+    clouds=np.append(clouds, _cloud ,0);
+    boards=np.append(boards, _board,0)
 
 
 #%%    
-ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+    ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+    
     imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
     
     res_name = "rot_t_{:04d}.p".format(num)

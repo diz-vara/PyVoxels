@@ -16,12 +16,19 @@ def build_dict(var):
          }
     return d     
 
-def save_calib_json(fname, calib_dict):
-  with open("cam2_calib.json","w") as jfile:
-      
-    json.dump({"cameraMatrix":build_dict(calib_dict["mtx"]), 
+def build_j_calib_dict(calib_dict):
+
+    return {"cameraMatrix":build_dict(calib_dict["mtx"]), 
                "distCoeffs":build_dict(calib_dict["dist"]),
                "rot_vec":build_dict(calib_dict["rot"]),
-               "t_vec":build_dict(calib_dict["t"])}, 
-              jfile)  
+               "t_vec":build_dict(calib_dict["t"])}
+
+    
+def save_calib_json(fname, front_calib_dict, back_calib_dict):
+    
+    calib_dict = {"Front":build_j_calib_dict(front_calib_dict),
+                  "Back":build_j_calib_dict(back_calib_dict)}
+
+    with open(fname,"w") as jfile:
+        json.dump(calib_dict, jfile)  
     
