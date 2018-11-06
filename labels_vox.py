@@ -73,3 +73,65 @@ labels_vox = [
 
 colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
 
+#%%
+ def voxelLabels2diz(base_dir, in_dir, out_dir):
+    _vox2diz = np.array([
+                     0, #unlabled
+                     1, #sky
+                     7, #vegetation
+                     6, #grass
+                     8, #building
+                     2, #road
+                     3, #sidewalk
+                     4, #road marking
+                     4, #crosswalk -> road marking
+                     10, #manhole -> object
+                     10, # speed bump -> object
+                     5,  #railway
+                     10, #pole->object
+                     10, #pole arm -> object
+                     10, #street lamp-> object
+                     10, #fence -> object
+                     10, #guard rail->object
+                     12, #traffic light
+                     11, #traffic sign
+                     10, #road furniture -> object
+                     10, #object
+                     13, #transport
+                     16, #bicycle
+                     14, #person
+                     15, #rider
+                     17, #animal
+                     10, #curb -> object
+                     10  #drop curb -> object
+                     ]).astype(np.uint8)
+
+    in_dir = os.path.join(base_dir, in_dir)
+    out_dir = os.path.join(base_dir, out_dir)
+    ncolors = len(_vox2diz)
+
+    try:
+        os.makedirs(out_dir)
+    except:
+        pass
+
+
+    print('Loading "voxelmaps" labels from ' + in_dir)
+    
+    
+    im_files = sorted(os.listdir(in_dir))
+    cnt = 0
+    end_string = ' from ' + str(len(im_files))
+    
+
+    for label_file in im_files:
+        print(str(cnt) + end_string)
+        cnt = cnt+1
+        label_in = cv2.imread(os.path.join(in_dir, label_file),-1)
+        if (len(label_in.shape) > 2): 
+            label_in = label_in[:,:,2]
+        label_in[label_in >= ncolors] =  0
+        label_out = _vox2diz[label_in]
+        cv2.imwrite(os.path.join(out_dir, label_file), label_out)
+                    
+                    
