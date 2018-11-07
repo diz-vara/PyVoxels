@@ -265,7 +265,7 @@ if 0:
 #%%
 def draw_3d_board(cloud, ax=None):
     if (not ax is None):
-        scatt3d(ax,cloud,True,'b','.',1)
+        scatt3d(ax,cloud,False,'b','.',1)
         scatt3d(ax,[0,0,0],False,'b','o',70)
 
 
@@ -298,17 +298,17 @@ def draw_3d_board(cloud, ax=None):
     
     
 #%%
-def calc_image_grid(num, base_dir,ax=None):
+def calc_image_grid(num, base_dir,back,ax=None):
     fname = base_dir + '/{:06}.png'.format(num)
     print(fname);
-    return load_draw_2d_board(fname,ax)
+    return load_draw_2d_board(fname,back,ax)
     
 
-def load_draw_2d_board(name, ax=None):
+def load_draw_2d_board(name, back,ax=None):
     img = cv2.imread(name,-1)
-    return draw_2d_board(img, ax)
+    return draw_2d_board(img, back, ax)
     
-def draw_2d_board(img, ax=None):
+def draw_2d_board(img, back=False, ax=None):
     if (not ax is None):
         ax.cla()
 
@@ -347,7 +347,9 @@ def draw_2d_board(img, ax=None):
         row_order = np.argsort(row[:,0])
         final_order = np.append(final_order,order[row_order+i])
     
-    
+        
+    if (back):    
+        final_order = final_order.reshape((11,11)).transpose().reshape(-1)    
     cxy_ret = cxy[final_order.astype(np.int32)]
     
     if (not ax is None):
@@ -362,18 +364,18 @@ def draw_2d_board(img, ax=None):
 clouds = np.empty((0,3),np.float64)
 boards = np.empty((0,2),np.float64)
 base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
-
 #for cam2_again cloud_list = [1,2,3,4,5,7,8,9,10,11]
 cloud_list = [1,3,4,5,7,8,11,16,18]
 
+cloud_list = [8,11,16]
 
 for cl in cloud_list:
-    _cloud = calc_cloud_grid(cl,base_dir)[1];
-    _board = calc_image_grid(cl,base_dir);
+    _cloud,_grid = calc_cloud_grid(cl,base_dir);
+    _board = calc_image_grid(cl,base_dir,True); #true for back only!!!
+ 
+    print (len(_grid), len(_board))
 
-    print (len(_cloud), len(_board))
-
-    clouds=np.append(clouds, _cloud ,0);
+    clouds=np.append(clouds, _grid ,0);
     boards=np.append(boards, _board,0)
 
 
