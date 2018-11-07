@@ -29,7 +29,7 @@ def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selecte
                 pnt = np.array([float(p) for p in row])
                 points.append(pnt)
 
-        if ( 'Orientation:' in row):
+        if ( False and 'Orientation:' in row):
             d = {}
             for row in pclreader:
                 d[row[0].split()[0][0]]=float(row[0].split()[1])
