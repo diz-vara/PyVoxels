@@ -12,7 +12,7 @@ def build_dict(var):
          "rows" : var.shape[0],
          "cols" : var.shape[1],
          "dt"   : "d",
-         "data" : var.tolist()
+         "data" : var.flatten().tolist()
          }
     return d     
 
