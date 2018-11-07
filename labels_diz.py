@@ -187,25 +187,25 @@ def colors2label(base_dir, in_dir, out_dir, colors):
 #%%
 def diz2cityScapes(base_dir, in_dir, out_dir):
     _diz2cs = np.array([
-                       0,   #unmarked 
-                       23,  #sky
-                       7,   #road
-                       8,   #sidewalk
-                       65,  #lane marker
-                       10,   #railway
-                       22,   #terrain
-                       21,   #vegetaion
-                       11,   #building
-                       15,   #--bridge
-                       14,   #construction (guard rail)
-                       20,   #sign
-                       19,  #traffick light
-                       26,  #transport (car)
-                       24,  #pedestrian
-                       25,  #rider
-                       33,  #bicycle
-                        5,  #animal (dynamic)
-                        4   #static
+                       0,   #  0 unmarked 
+                       23,  #  1 sky
+                       7,   #  2 road
+                       8,   #  3 sidewalk
+                       65,  #  4 lane marker
+                       10,  #  5 railway
+                       22,  #  6 terrain
+                       21,  #  7 vegetaion
+                       11,  #  8 building
+                       15,  #  9 --bridge
+                       14,  # 10 construction (guard rail)
+                       20,  # 11 sign
+                       19,  # 12 traffick light
+                       26,  # 13 transport (car)
+                       24,  # 14 pedestrian
+                       25,  # 15 rider
+                       33,  # 16 bicycle
+                        5,  # 17 animal (dynamic)
+                        4   # 18 static
                        ]).astype(np.uint8)
 
     in_dir = os.path.join(base_dir, in_dir)
@@ -233,3 +233,5 @@ def diz2cityScapes(base_dir, in_dir, out_dir):
         label_out = _diz2cs[label_in]
         cv2.imwrite(os.path.join(out_dir, label_file), label_out)
 
+
+ #%%
