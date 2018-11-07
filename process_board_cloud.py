@@ -201,7 +201,7 @@ def build_grid(sq_size, number, offset):
 #%%
 def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
     cloud = read_cloud_csv(num,base_dir)[0]
-    
+    cloud = cloud * rot180
     _avg, _rot = get_cloud_rotation(cloud)
     
     flat = rotate_cloud(cloud,_avg,_rot)
@@ -309,8 +309,8 @@ def load_draw_2d_board(name, back,ax=None):
     return draw_2d_board(img, back, ax)
     
 def draw_2d_board(img, back=False, ax=None):
-    if (not ax is None):
-        ax.cla()
+    #if (not ax is None):
+    #    ax.cla()
 
     #uimg=cv2.undistort(img,mtx,dist)
 
@@ -360,27 +360,34 @@ def draw_2d_board(img, back=False, ax=None):
    
     return cxy_ret
 #%%
+rot180 = np.matrix(np.diag([-1,-1,1]))
 
 clouds = np.empty((0,3),np.float64)
 boards = np.empty((0,2),np.float64)
-base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
-#for cam2_again cloud_list = [1,2,3,4,5,7,8,9,10,11]
-cloud_list = [1,3,4,5,7,8,11,16,18]
 
-cloud_list = [8,11,16]
+#base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
+#cloud_list = [1,2,3,4,5,7,8,9,10,11]
+#cloud_list = [1,5]
+
+ax1.cla()
+ax3.cla()
+
+base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
+cloud_list = [1,3,4,5,7,11,16,18]
+cloud_list = [5,11,16]
 
 for cl in cloud_list:
-    _cloud,_grid = calc_cloud_grid(cl,base_dir);
-    _board = calc_image_grid(cl,base_dir,True); #true for back only!!!
+    _cloud,_grid = calc_cloud_grid(cl,base_dir,ax3, True);
+    _board = calc_image_grid(cl,base_dir,False,ax1); #true for back only!!!
  
     print (len(_grid), len(_board))
 
     clouds=np.append(clouds, _grid ,0);
     boards=np.append(boards, _board,0)
 
+ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
 
 #%%    
-    ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
     
     imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
     
