@@ -10,7 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitalization! 
 import cv2
-from pyquaternion import Quaternion
 import datetime, calendar
 import navpy
 
@@ -331,14 +330,14 @@ def read_pwrpak_log(fname):
                 ts = week_seconds_to_utc(week,seconds,0)     
                 print (row[3],seconds, ts)
                 # LEAP SECONDS !!!!
-                point['time'] = ros_ts.double();
+                point['time'] = ts;
                 point['lat'] = float(row[4])
                 point['lon'] = float(row[5])
                 point['alt_a'] = float(row[6])
 
                 point['imu_roll'] = float(row[10])
                 point['imu_pitch'] = -float(row[11])
-                point['imu_yaw'] = float(row[12])-90
+                point['imu_yaw'] = 90-float(row[12])
                 points.append(point)
                 cnt[9] += 1
                 

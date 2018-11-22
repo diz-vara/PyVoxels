@@ -43,11 +43,11 @@ def get_road_rotation(cloud):
     return avg, rot    
 
 
-def remove_yaw(rm):
-    eul = rotationMatrixToEulerAngles(rm); #xyz in Z-Y-X (ext) order
-    angle = [0,0, 0-eul[2]];
+#def remove_yaw(rm):
+#    eul = rotationMatrixToEulerAngles(rm); #xyz in Z-Y-X (ext) order
+#    angle = [0,0, 0-eul[2]];#
 
-    return ( eulerAnglesToRotationMatrix(angle) * rm);
+#    return ( eulerAnglesToRotationMatrix(angle) * rm);
 
 
 # Inputs:
@@ -96,3 +96,31 @@ def plot_and_fit_road(ax, plane, color='b'):
 
     return c, avg, np.array([p0,p1,p2,p3])
     
+ #%%
+plane_dir = 'E:\\Data\\Voxels\\201809_usa\\planes\\test14_4\\head'
+road_clouds = [];
+for i in [1,2,3,4,5,6,9,10]:
+    road_clouds.append(read_cloud_csv(i, plane_dir)[0])
+    
+#%%
+
+
+
+road2lidar=[]
+for i in range(len(road_clouds)):
+    road2lidar = get_road_rotation(road_clouds[i])[1]
+
+world2imu_q = [Quaternion(matrix = r) for r in world2imu]
+mean_q = sum(world2imu_q/8)
+world2road = mean_q.rotation_matrix #error!!!!
+road2imu = mean_q.rotation_matrix #[  -0.94101673,    2.32569893,  130.57125182]
+imu2lidar=[r*remove_yaw(road2imu).transpose() for r in road2lidar]
+
+imu2lidar_q = [Quaternion(matrix = r) for r in imu2lidar]        
+imu2lidar_mean = np.matrix((sum(imu2lidar_q)/len(imu2lidar_q)).rotation_matrix)
+               
+               
+clouds_rot =  [road_clouds[i]*imu2lidar[i].transpose()*world2imu[i].transpose() for i in range(8)]
+clouds_rot1 =  [road_clouds[i]*imu2lidar_mean.transpose()*world2imu[i].transpose() for i in range(8)]               
+
+   
