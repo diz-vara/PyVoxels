@@ -24,10 +24,13 @@ def build_j_calib_dict(calib_dict):
                "t_vec":build_dict(calib_dict["t"])}
 
     
-def save_calib_json(fname, front_calib_dict, back_calib_dict):
+def save_calib_json(fname, front_calib_dict, back_calib_dict=None):
     
-    calib_dict = {"Front":build_j_calib_dict(front_calib_dict),
-                  "Back":build_j_calib_dict(back_calib_dict)}
+    if (back_calib_dict is None):
+        calib_dict = build_j_calib_dict(front_calib_dict)
+    else:
+        calib_dict = {"Front":build_j_calib_dict(front_calib_dict),
+                      "Back":build_j_calib_dict(back_calib_dict)}
 
     with open(fname,"w") as jfile:
         json.dump(calib_dict, jfile)  

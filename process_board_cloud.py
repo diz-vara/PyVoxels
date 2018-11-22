@@ -201,7 +201,7 @@ def build_grid(sq_size, number, offset):
 #%%
 def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
     cloud = read_cloud_csv(num,base_dir)[0]
-    cloud = cloud * rot180
+    #cloud = cloud * rot180
     _avg, _rot = get_cloud_rotation(cloud)
     
     flat = rotate_cloud(cloud,_avg,_rot)
@@ -322,6 +322,7 @@ def draw_2d_board(img, back=False, ax=None):
     cxy=np.array(corn_xy).transpose().astype(np.float64)
     
     cxy_u = cv2.undistortPoints(np.array([cxy]),mtx,dist, R=mtx)[0]
+    
 
     #if (not ax is None):
     #    scatt2d(ax,cxy_u, False, None, 'o',50)
@@ -330,14 +331,14 @@ def draw_2d_board(img, back=False, ax=None):
     right_idx = np.argmax(cxy_u[:,0])
     
     top = cxy_u[top_idx]
-    cxy_u = cxy_u-top;
+    cxy_ut = cxy_u-top;
     
-    right = cxy_u[right_idx]
+    right = cxy_ut[right_idx]
     angle = np.degrees(np.arcsin(right[1]/np.linalg.norm(right)))
     rm = np.matrix(cv2.getRotationMatrix2D((0,0), -angle,1)[:,:2])
     
     
-    cxy_rot = np.array(cxy_u * rm);
+    cxy_rot = np.array(cxy_ut * rm);
     
     order = np.argsort(cxy_rot[:,1])
     
@@ -367,18 +368,20 @@ boards = np.empty((0,2),np.float64)
 
 #base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
 #cloud_list = [1,2,3,4,5,7,8,9,10,11]
-#cloud_list = [1,5]
+#cloud_list = [1,4,5,8,10,11]
+
 
 ax1.cla()
 ax3.cla()
 
+
 base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
 cloud_list = [1,3,4,5,7,11,16,18]
-cloud_list = [5,11,16]
+cloud_list = [11, 16         ]
 
 for cl in cloud_list:
     _cloud,_grid = calc_cloud_grid(cl,base_dir,ax3, True);
-    _board = calc_image_grid(cl,base_dir,False,ax1); #true for back only!!!
+    _board = calc_image_grid(cl,base_dir,True,ax1); #true for back only!!!
  
     print (len(_grid), len(_board))
 
@@ -386,12 +389,14 @@ for cl in cloud_list:
     boards=np.append(boards, _board,0)
 
 ret, rot, t = cv2.solvePnP(clouds,boards,mtx,dist,flags=cv2.SOLVEPNP_ITERATIVE)
+imgpts, jac = cv2.projectPoints(clouds, rot, t, mtx, dist)
+scatt2d(ax1,imgpts[:,0,:],False,'w',size=15)
 
 #%%    
     
-    imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
-    
-    res_name = "rot_t_{:04d}.p".format(num)
-    pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
+
+res_name = "rot_t_{:04d}.p".format(num)
+pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
 
     
