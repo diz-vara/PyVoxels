@@ -59,22 +59,23 @@ labels_vox = [
     sLabel(  'Guard rail'       , 16 , ( 0xD4, 0xA8, 0x9E) ),
     sLabel(  'Traffic light'    , 17 , ( 0xAC, 0x2C, 0xCD) ),
     sLabel(  'Traffic sign'     , 18 , ( 0xC8, 0xC8,    0) ), 
-    sLabel(  'Movable furniture', 19 , ( 0xFA, 0xA9, 0x1E) ), 
+    sLabel(  'Barrier',           19 , ( 0xFA, 0xA9, 0x1E) ), 
     sLabel(  'Object'           , 20 , ( 0x99, 0x99, 0x99) ),
     sLabel(  'Transport'        , 21 , (    0,    0, 0x8E) ), 
     sLabel(  'Bicycle,motorbike', 22 , ( 0x77, 0x0B, 0x20) ),
     sLabel(  'Person'           , 23 , ( 0xDC, 0x14, 0x3C) ),
-    sLabel(  'Rider'            , 24 , ( 0xFF,    0,    0) ), 
     sLabel(  'Animal'           , 25 , ( 0xCA, 0x96, 0xC7) ), 
     sLabel(  'Curb'             , 26 , ( 0x6c, 0xBA, 0xC1) ), 
-    sLabel(  'Drop Curb'        , 27 , ( 0x74, 0x6C, 0xC1) )
+    sLabel(  'Drop Curb'        , 27 , ( 0x74, 0x6C, 0xC1) ),
+    sLabel(  'Portable'         , 28 , ( 0xC0, 0x30, 0x00) )
+  
 
 ]
 
 colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
 
 #%%
- def voxelLabels2diz(base_dir, in_dir, out_dir):
+def voxelLabels2diz(base_dir, in_dir, out_dir):
     _vox2diz = np.array([
                      0, #unlabled
                      1, #sky
@@ -100,10 +101,11 @@ colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
                      13, #transport
                      16, #bicycle
                      14, #person
-                     15, #rider
+                     14, #rider -> person
                      17, #animal
                      10, #curb -> object
-                     10  #drop curb -> object
+                     10,  #drop curb -> object
+                     18
                      ]).astype(np.uint8)
 
     in_dir = os.path.join(base_dir, in_dir)
@@ -128,7 +130,7 @@ colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
         print(str(cnt) + end_string)
         cnt = cnt+1
         label_in = cv2.imread(os.path.join(in_dir, label_file),-1)
-        if (len(label_in.shape) > 2): 
+        if (len(label_in.shape) > 2):  #if RGB, use only R
             label_in = label_in[:,:,2]
         label_in[label_in >= ncolors] =  0
         label_out = _vox2diz[label_in]
