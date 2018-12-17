@@ -99,4 +99,44 @@ def onclick(event):
           ('double' if event.dblclick else 'single', event.button,
            event.x, event.y, event.xdata, event.ydata))
 
+#%%
+def show_corners(image_name, ax, pattern_size=(11,11)):
+    img = cv2.imread(image_name)
+    grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+    flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
+    ret, corners = cv2.findChessboardCorners(img, pattern_size, flagCorners)
+    cv2.drawChessboardCorners(img,(11,11),corners,ret)
+    ax.imshow(img)
+    return (ret,corners)
+#%%
+def label_corners(image_name, ax=None, pattern_size=(11,11)):
+    img = cv2.imread(image_name)
+    grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) 
+    flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
+    ret, corners = cv2.findChessboardCorners(grey, pattern_size, flagCorners)
+    if (ret):
+        corners = corners[:,0,:]
+        for c in corners.astype(int):
+            img[c[1],c[0]]=(0,0,255)
+        if (not ax is None):
+            img1 = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            ax.imshow(img1)
+        return img
+        
+
+#%%
+def label_and_save_corners(image_dir, ax=None, pattern_size=(11,11)):
+    for entry in os.scandir(image_dir):
+        if entry.is_file():
+            filename = entry.path
+            print(filename)
+            img = label_corners(filename,ax,pattern_size)
+            if (not img is None):
+                outname = filename.replace('jpg', 'png', -1)
+                print ("OK ", outname)
+                cv2.imwrite( outname, img  )
+            else:
+                print("fail")
     

@@ -18,7 +18,9 @@ def build_dict(var):
 
 def build_j_calib_dict(calib_dict):
 
-    return {"cameraMatrix":build_dict(calib_dict["mtx"]), 
+    return {"cameraName":calib_dict["camera_name"],
+            "cameraCenter":calib_dict["camera_center"],
+            "cameraMatrix":build_dict(calib_dict["mtx"]), 
                "distCoeffs":build_dict(calib_dict["dist"]),
                "rot_vec":build_dict(calib_dict["rot"]),
                "t_vec":build_dict(calib_dict["t"])}
@@ -35,3 +37,12 @@ def save_calib_json(fname, front_calib_dict, back_calib_dict=None):
     with open(fname,"w") as jfile:
         json.dump(calib_dict, jfile)  
     
+        
+def save_calib_list_json(fname, camera_list):
+    
+    calib_list = [build_j_calib_dict(camera) for camera in camera_list ]
+
+    c_dict = {"numCameras":len(calib_list), "cameras":calib_list}
+    with open(fname,"w") as jfile:
+        json.dump(c_dict, jfile)  
+            
