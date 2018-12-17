@@ -314,13 +314,18 @@ def draw_2d_board(img, back=False, ax=None):
 
     #uimg=cv2.undistort(img,mtx,dist)
 
-    if (not ax is None):
-        ax.imshow(img)
 
     corners = ( (img[:,:,0]<=0) & (img[:,:,1]<=0) & (img[:,:,2]> 254) )
     corn_xy=np.nonzero(corners.transpose())
     cxy=np.array(corn_xy).transpose().astype(np.float64)
     
+    # for resized (enlarged) imnages!!!
+    if (img.shape[0] > 1000):
+        cxy = cxy / 2;
+        img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+    if (not ax is None):
+        ax.imshow(img)
+        
     cxy_u = cv2.undistortPoints(np.array([cxy]),mtx,dist, R=mtx)[0]
     
 
@@ -366,18 +371,18 @@ rot180 = np.matrix(np.diag([-1,-1,1]))
 clouds = np.empty((0,3),np.float64)
 boards = np.empty((0,2),np.float64)
 
-#base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
+base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
 #cloud_list = [1,2,3,4,5,7,8,9,10,11]
-#cloud_list = [1,4,5,8,10,11]
+cloud_list = [1,4,5,8,10,11]
 
 
 ax1.cla()
 ax3.cla()
 
 
-base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam3/'
-cloud_list = [1,3,4,5,7,11,16,18]
-cloud_list = [11, 16         ]
+base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam_5/png'
+
+cloud_list = [0,8,19]
 
 for cl in cloud_list:
     _cloud,_grid = calc_cloud_grid(cl,base_dir,ax3, True);
