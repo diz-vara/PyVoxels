@@ -1,0 +1,29 @@
+0,#000000,Unlabeled
+1,#4682B4,Sky
+2,#328E32,"Nature, vegetation"
+3,#98FB98,"Loan, grass, terrain"
+4,#464646,"Building, construction"
+5,#804080,Road
+6,#F423E8,Sidewalk
+7,#FFFF8C,Road marking
+8,#96B5CA,Zebra crosswalk
+9,#595392,Manhole
+10,#9BDD2E,Speed bump
+11,#CDD29C,Railway
+12,#2B9BCD,Pole
+13,#BD7865,Pole arm
+14,#FF5500,Street lamp
+15,#F3D234,Fence
+16,#D4A89E,Guard rail
+17,#AC2CCD,Traffic light
+18,#C8C800,Traffic sign
+19,#FAA91E,Barrier
+20,#999999,Object
+21,#00008E,Transport
+22,#770B20,Bicycle
+23,#DC143C,Person
+24,#FF0000,
+25,#CA96C7,Animal
+26,#6CBAC1,Curb
+27,#746CC1,Drop_Curb
+28,#C03000,Portable
