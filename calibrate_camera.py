@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import os
+import glob
 
 #real-world coordinates of the calibration pattern
 def calcCorners(nx,ny, sqSide = 40):
@@ -23,7 +24,7 @@ def calcCorners(nx,ny, sqSide = 40):
     return np.array(objCorners, dtype=np.float32)      
 
 #%%
-def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
+def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 100, table = None):
     
     #we can skip it here, but for real calibration FAST_CHECK is important!!
     flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
@@ -44,36 +45,49 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, table = None):
     imgPoints = []
     objPoints = []        
     files = []
-    #read images and try to find corneres in each of them        
-    for entry in os.scandir(cal_dir):
-        if entry.is_file():
-            img = cv2.imread(entry.path)
-            if (not table is None):
-                img = cv2.LUT(img, table)
-            img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            shape = img.shape[0:2]
-            _nx = nx
-            _ny = ny
-            ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
-            print(entry.name, ret)
-            #plt.imshow(img, cmap = 'gray')
-            #if (not ret):
-            #    _ny = ny - 1
-            #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
-            #    print((_nx,_ny),entry.name,  ret)
-                
-            #if (not ret):
-            #    _nx = nx - 1
-            #    _ny = ny
-            #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
-            #    print((_nx,_ny),entry.name, ret)
 
-            if (ret):
-                #corners found - add object and image coordinates
-                print("adding ", entry.name, (_nx,_ny))
-                objPoints.append(calcCorners(_nx,_ny))
-                imgPoints.append(corners)
-                files.append(entry.path)
+    file_list = glob.glob(cal_dir+'/*.jpg')
+    
+    
+    
+    start = int(np.random.uniform(step))
+    
+    file_list = file_list[start::step]
+    
+    np.random.shuffle(file_list)
+    if (nSamples > 0):
+        file_list = file_list[:nSamples]
+
+    #read images and try to find corneres in each of them        
+    for entry in file_list:
+        img = cv2.imread(entry)
+        if (not table is None):
+            img = cv2.LUT(img, table)
+        img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        shape = img.shape[0:2]
+        _nx = nx
+        _ny = ny
+        ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
+        name = os.path.split(entry)[1]
+        print(name, ret)
+        #plt.imshow(img, cmap = 'gray')
+        #if (not ret):
+        #    _ny = ny - 1
+        #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
+        #    print((_nx,_ny),entry.name,  ret)
+            
+        #if (not ret):
+        #    _nx = nx - 1
+        #    _ny = ny
+        #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
+        #    print((_nx,_ny),entry.name, ret)
+
+        if (ret):
+            #corners found - add object and image coordinates
+            print("adding ", name, (_nx,_ny))
+            objPoints.append(calcCorners(_nx,_ny))
+            imgPoints.append(corners)
+            files.append(entry)
                 
     #return files, np.array(imgPoints)
 
