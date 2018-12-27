@@ -35,7 +35,9 @@ colors = np.array([label.color + alfa for label in labels_diz]).astype(np.uint8)
 
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-load_net = '/media/undead/Data/Segmentation/net/my2-net-73949'
+base_dir = '/media/avarfolomeev/storage'
+
+load_net = base_dir + '/Data/Segmentation/net/my2-net-73949'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
@@ -175,11 +177,15 @@ elif dataset == 'Work':
     
 
 
-ride = 'test14_7'
+base_dir = '/media/avarfolomeev/storage/Data'
+data_folder= base_dir + '/Voxels/201809_usa'
+
+
+ride = 'test7_2'
 camera = 'argus_cam_2'
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = os.path.join('/media/undead/ssd/Voxels/',ride,camera)
+out_folder = data_folder #os.path.join('/media/undead/ssd/Voxels/',ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
 
