@@ -171,7 +171,7 @@ def top_left(box):
         
 #%%
 # re-sorts grid in order top corner->right corner
-def sort_grid(rotated_grid):
+def sort_grid(rotated_grid, side_len = 11):
     #re-arrange rotated_grid 
     top_idx = np.argmax(rotated_grid[:,2])
     right_idx= np.argmax(rotated_grid[:,1])
@@ -180,10 +180,10 @@ def sort_grid(rotated_grid):
     #print(top_idx, right_idx, left_idx)
     
     sign = np.sign(right_idx-top_idx)
-    col_idx = np.arange(top_idx, right_idx+sign, int((right_idx-top_idx+sign)/10))
+    col_idx = np.arange(top_idx, right_idx+sign, int((right_idx-top_idx+sign)/(side_len-1)))
 
     sign = np.sign(left_idx-top_idx)
-    row_idx = np.arange(0, (left_idx-top_idx+sign), int((left_idx-top_idx+sign)/10))
+    row_idx = np.arange(0, (left_idx-top_idx+sign), int((left_idx-top_idx+sign)/(side_len-1)))
     
     idx = np.array([row + col for col in col_idx for row in row_idx])
     
@@ -199,8 +199,13 @@ def build_grid(sq_size, number, offset):
     
     
 #%%
-def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
-    cloud = read_cloud_csv(num,base_dir)[0]
+def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False, _grid = (0.0597, 11, 0.211)):
+    fname = base_dir + '\\{:06}.csv'.format(num)
+    return calc_cloud_grid_f(fname, ax, overlay, London, _grid)
+    
+def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False, 
+                      _grid = (0.0597, 11, 0.211),delimiter = ','):
+    cloud = read_cloud_file(fname, delimiter)[0]
     #cloud = cloud * rot180
     _avg, _rot = get_cloud_rotation(cloud)
     
@@ -211,9 +216,9 @@ def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
     p0,box_rot = get_box_rotation(box)
     
     if (London):
-        grid = build_grid(0.04, 11, 0.14)# - LONDON
-    else:
-        grid = build_grid(0.0597, 11, 0.211)
+        grid =(0.04, 11, 0.14)# - LONDON
+
+    grid = build_grid(_grid[0], _grid[1], _grid[2])
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
@@ -222,7 +227,7 @@ def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False):
     rotated_grid = np.array(rotated_grid * _rot + _avg)
     #rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
     
-    sorted_grid = sort_grid(rotated_grid)
+    sorted_grid = sort_grid(rotated_grid,_grid[1])
 
     
     
@@ -263,7 +268,7 @@ if 0:
 
 
 #%%
-def draw_3d_board(cloud, ax=None):
+def draw_3d_board(cloud, ax=None, grid = (0.0597, 11, 0.211)):
     if (not ax is None):
         scatt3d(ax,cloud,False,'b','.',1)
         scatt3d(ax,[0,0,0],False,'b','o',70)
@@ -277,7 +282,7 @@ def draw_3d_board(cloud, ax=None):
     box = get_box(flat)
     
     p0,box_rot = get_box_rotation(box)
-    grid = build_grid(0.0597, 11, 0.211)
+    grid = build_grid(grid[0], grid[1], grid[2])
     
     #first rotation - to flat box
     rotated_grid = grid*box_rot.transpose()+p0
@@ -298,29 +303,35 @@ def draw_3d_board(cloud, ax=None):
     
     
 #%%
+
+
 def calc_image_grid(num, base_dir,back,ax=None):
     fname = base_dir + '/{:06}.png'.format(num)
     print(fname);
     return load_draw_2d_board(fname,back,ax)
     
 
-def load_draw_2d_board(name, back,ax=None):
+def load_draw_2d_board(name, back,ax=None, shape = None):
     img = cv2.imread(name,-1)
-    return draw_2d_board(img, back, ax)
+    return draw_2d_board(img, back, ax, shape)
     
-def draw_2d_board(img, back=False, ax=None):
+def draw_2d_board(img, back=False, ax=None, shape = None):
     #if (not ax is None):
     #    ax.cla()
 
     #uimg=cv2.undistort(img,mtx,dist)
 
-
-    corners = ( (img[:,:,0]<=0) & (img[:,:,1]<=0) & (img[:,:,2]> 254) )
-    corn_xy=np.nonzero(corners.transpose())
-    cxy=np.array(corn_xy).transpose().astype(np.float64)
+    if (not shape is None):
+        r,corn_xy = cv2.findChessboardCorners(img,shape)
+        cxy=np.array(corn_xy[:,0,:]).astype(np.float64)
+    else:
+        shape = (11,11) #LA recordings with manual corners
+        corners = ( (img[:,:,0]<=0) & (img[:,:,1]<=0) & (img[:,:,2]> 254) )
+        corn_xy=np.nonzero(corners.transpose())
+        cxy=np.array(corn_xy).transpose().astype(np.float64)
     
     # for resized (enlarged) imnages!!!
-    if (img.shape[0] > 1000):
+    if (img.shape[0] > 1100):
         cxy = cxy / 2;
         img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     if (not ax is None):
@@ -348,8 +359,8 @@ def draw_2d_board(img, back=False, ax=None):
     order = np.argsort(cxy_rot[:,1])
     
     final_order = np.array([]);
-    for i in np.arange(0,121,11):
-        row = cxy_rot[order[i:i+11]]
+    for i in np.arange(0,shape[0]*shape[1],shape[0]):
+        row = cxy_rot[order[i:i+shape[1]]]
         row_order = np.argsort(row[:,0])
         final_order = np.append(final_order,order[row_order+i])
     
@@ -365,7 +376,8 @@ def draw_2d_board(img, back=False, ax=None):
             ax.annotate(str(i+1),np.array(cxy_ret[i]))
    
     return cxy_ret
-#%%
+#%% 
+"""
 rot180 = np.matrix(np.diag([-1,-1,1]))
 
 clouds = np.empty((0,3),np.float64)
@@ -404,4 +416,4 @@ imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
 res_name = "rot_t_{:04d}.p".format(num)
 pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
 
-    
+"""    

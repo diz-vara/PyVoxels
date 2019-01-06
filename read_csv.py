@@ -13,6 +13,8 @@ import cv2
 from pyquaternion import Quaternion
 import struct
 
+
+
 #%%
 def read_matrix(filename):
     with open (filename) as csvfile:
@@ -42,17 +44,20 @@ def save_matrix(filename, mat):
 
 #%%
 def read_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected\\'):
-
     fname = base_dir + '\\{:06}.csv'.format(cloud_num)
+    return read_cloud_file(fname)
+
+def read_cloud_file(fname, delimiter = ','):
+
     with open (fname) as csvfile:
-        pclreader = csv.reader(csvfile, delimiter = ',')
+        pclreader = csv.reader(csvfile, delimiter = delimiter)
         points = []
         for row in pclreader:
             if ( 'Orientation:' in row or 'INSPVA' in row):
                 continue;
-            if (len(row) == 3):    
+            if (len(row) >= 3):    
                 pnt = np.array([float(p) for p in row])
-                points.append(pnt)
+                points.append(pnt[:3])
 
         if ( False and 'Orientation:' in row):
             d = {}
