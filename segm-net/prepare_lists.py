@@ -20,8 +20,8 @@ def write_list(fname, _list):
 def prepare_data_lists(data_dir, percents=(75,15,10)):
     assert sum(percents)==100, "Sum of percents is not 100"
     
-    images = glob.glob(data_dir+'/*.jpg')
-    labels = glob.glob(data_dir+'/*.png')
+    images = np.sort(glob.glob(data_dir+'/*.jpg'))
+    labels = np.sort(glob.glob(data_dir+'/*.png'))
     
     i2l = [s.replace('.jpg', '.png') for s in images]
 
@@ -30,14 +30,14 @@ def prepare_data_lists(data_dir, percents=(75,15,10)):
     assert len(images) == len(labels), \
         "lists are different: %r images and %r labels" % (len(images), len(labels))
      
-    if (i2l != labels):
+    if ((i2l != labels).any()):
         i2l_ = np.array(i2l)
         labels_ = np.array(labels)
         idx = (i2l_ != labels_)
         print(all_files[idx])
     
         
-    assert (i2l == labels), "image and label lists are different: "
+    assert (i2l == labels).all(), "image and label lists are different: "
     
     
     n_units = len(images)
