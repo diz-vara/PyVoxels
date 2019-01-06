@@ -27,6 +27,17 @@ def read_matrix(filename):
     matrix = np.matrix(points)     
     return matrix
     
+
+#%%
+def save_matrix(filename, mat):
+        with open(filename, 'wt') as out_file:
+
+            for row in range (mat.shape[0]):
+                for col in range (mat.shape[1]):
+                    out_file.writelines("{} ".format(mat[row,col]))
+                out_file.write("\r\n")    
+        out_file.close();
+                
     
 
 #%%
