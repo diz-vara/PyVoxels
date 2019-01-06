@@ -25,9 +25,20 @@ def prepare_data_lists(data_dir, percents=(75,15,10)):
     
     i2l = [s.replace('.jpg', '.png') for s in images]
 
-    assert i2l == labels, "image and label lists are different"
-    
     all_files = np.array([z for z in zip(images, labels)])
+
+    assert len(images) == len(labels), \
+        "lists are different: %r images and %r labels" % (len(images), len(labels))
+     
+    if (i2l != labels):
+        i2l_ = np.array(i2l)
+        labels_ = np.array(labels)
+        idx = (i2l_ != labels_)
+        print(all_files[idx])
+    
+        
+    assert (i2l == labels), "image and label lists are different: "
+    
     
     n_units = len(images)
     n_test = (n_units * percents[2]) // 100
