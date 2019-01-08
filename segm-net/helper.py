@@ -22,6 +22,10 @@ class DLProgress(tqdm):
         self.last_block = block_num
 
 
+def build_lut (invgamma):
+    table = np.array([ ((i/255.0) ** invgamma) * 255 for i in np.arange(0,256)]).astype("uint8")    
+    return table
+
 def maybe_download_pretrained_vgg(data_dir):
     """
     Download and extract pretrained vgg model if it doesn't exist
@@ -95,7 +99,9 @@ def get_image_and_labels_list_D(root_path, mode, image_path, label_path):
     images = os.listdir(os.path.join(image_mode_dir))
     for image_file in images:
         image_list.append(os.path.join(image_mode_dir, image_file))
-        label_list.append(os.path.join(label_mode_dir, image_file))
+        # replace possible jpg to png - labels are png always
+        label_list.append(os.path.join(label_mode_dir, 
+                                       image_file.replace('.jpg','.png')))
             
     return image_list, label_list
 
@@ -115,7 +121,8 @@ def gen_batch_function(data_folder, image_shape, num_classes):
     image_nr = len(image_paths)
     print("Image Number = ",image_nr)
     one_hot = np.zeros((num_classes, num_classes), np.int32 )
-    for i in range(num_classes): one_hot[i,i]=1
+    for i in range(num_classes): 
+        one_hot[i,i]=1
 
     def get_batches_fn(batch_size):
         """
@@ -145,11 +152,15 @@ def gen_batch_function(data_folder, image_shape, num_classes):
                 idx = indexes[i]
                 image_file = image_paths[idx] # // augmentation_coeff]
                 gt_image_file = label_paths[idx] # // augmentation_coeff]
+
+                #print(image_file)
+                #print(gt_image_file)
                 
                 image = scipy.misc.imread(image_file);
                 #image = cv2.medianBlur(image,5)
                 gt_image = cv2.imread(gt_image_file,-1) #scipy.misc.imread(gt_image_file)*255;
-                
+                if (len(gt_image.shape) > 2 and gt_image.shape[2] > 1):
+                    gt_image = gt_image[:,:,2]  #only red channel for F8 labels
                 
                 assert(image.shape[:2] == gt_image.shape[:2])                
     
@@ -172,6 +183,12 @@ def gen_batch_function(data_folder, image_shape, num_classes):
                 
                 cropped = image[y_shift:y_shift+image_shape[0], 
                                 x_shift:x_shift+image_shape[1], :]
+
+
+                gamma = np.random.rand()/2 + 0.75 #0.75 .... 1.25
+                table = build_lut(gamma)
+                
+                cropped = cv2.LUT(cropped, table)
                 
                 gt_cropped = gt_image[y_shift:y_shift+image_shape[0], 
                                 x_shift:x_shift+image_shape[1]]

@@ -3,9 +3,9 @@ import tensorflow as tf
 import helper
 import warnings
 from distutils.version import LooseVersion
-import project_tests as tests
 import tensorflow.contrib.slim as slim
 import time
+import labels_vox as lbl
 
 
 # Check TensorFlow Version
@@ -104,7 +104,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*2, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -170,8 +170,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
     #lr = sess.run(learning_rate)
     #merged = tf.summary.merge_all()
-    lr = 1e-4
-    min_loss = 1e9
+    lr = 1e-3
+    min_loss = 2.0l
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
         print(" LR = {:f}".format(lr))     
@@ -187,7 +187,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         if (loss < min_loss):
             print("saving at step {:d}".format(epoch))     
             min_loss = loss;
-            saver.save(sess, '/media/D/DIZ/Datasets/KITTI/Segmentation/net/my2-net',
+            saver.save(sess, '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox_net',
                        global_step=epoch)
     
 #tests.test_train_nn(train_nn)
@@ -196,13 +196,14 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 tf.reset_default_graph();
 
 def run():
-    num_classes = len(labels_diz)
-    image_shape = (160, 576)
-    data_dir = './data'
-    runs_dir = './runs'
+    labels = lbl.labels_vox
+    num_classes = len(labels)
+    image_shape = (576, 1024)
+    data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
+    runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
 
-    export_dir = './exports/' + timestamp;
+    export_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/exports/' + timestamp;
 
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
@@ -221,12 +222,12 @@ def run():
     with tf.Session(config=config) as sess:
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function('/media/D/DIZ/Datasets/KITTI/Segmentation',
-                                                   image_shape, num_classes)
+        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm',
+                                           image_shape, num_classes)
     
     
-        epochs = 50
-        batch_size = 8
+        epochs = 150
+        batch_size = 4
         
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes],
                                        name = 'correct_label')
