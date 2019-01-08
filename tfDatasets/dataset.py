@@ -26,7 +26,7 @@ import helper
 import matplotlib.pyplot as plt
 
 
-base_dir = '/media/avarfolomeev/storage/Data'
+base_dir = '/media/undead/'
 
 
 #%%
@@ -38,17 +38,20 @@ def _parse_function(filename):
 
 #%%
 
-data_folder= base_dir + '/Voxels/201809_usa'
+data_folder= base_dir + '/8Tb/out'
+out_folder = base_dir + '/ssd/Voxels'
+
 image_shape=(576,1024)
 dataname = 'data/'
 
-ride = 'test7_2'
-camera = 'argus_cam_2'
+ride = 'test11_2'
+camera = 'argus_cam_1'
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = os.path.join(base_dir + '/Voxels/out',ride,camera)
+out_folder = os.path.join(base_dir  + 'ssd/Voxels/out',ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
+#l = l[5::50] 
 
 road_name = 'Xroad/'
 overlay_name = 'Xoverlay/'
@@ -70,11 +73,13 @@ num_classes = len(labels_diz)
 alfa = (127,) #semi-transparent
 colors = np.array([label.color + alfa for label in labels_diz]).astype(np.uint8)
 #%%
+batchsize = 10
+
 tf.reset_default_graph();
 
 dataset = tf.data.Dataset.from_tensor_slices((l))
 dataset = dataset.map(_parse_function)
-batch_dataset = dataset.batch(10)
+batch_dataset = dataset.batch(batchsize)
 
     
 iterator = batch_dataset.make_one_shot_iterator()
@@ -84,7 +89,7 @@ images,filenames,original_images = iterator.get_next()
 image0=original_images[0]
 
 
-load_net = base_dir + '/Segmentation/net/my2-net-73949'
+load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
 
 meta = load_net + '.meta'
 
