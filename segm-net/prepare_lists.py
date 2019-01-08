@@ -7,6 +7,7 @@ Created on Sun Jan  6 22:07:52 2019
 
 import glob
 import numpy as np
+import cv2
 
 
 def write_list(fname, _list):
@@ -66,4 +67,30 @@ def prepare_data_lists(data_dir, percents=(75,15,10)):
     return #all_files, train, val
     
     
+#%%
+def calc_classes(data_dir):
+    
+    labels = np.sort(glob.glob(data_dir+'/*.png'))
+    n_classes = 2;
+    cum_sum = np.zeros(n_classes)
+    
+    for l in labels:
+        mask = cv2.imread(l,-1)
+        if (len(mask.shape) > 2):
+            r = 2
+            #if there is 3d dimension with one channel only
+            if (r >= mask.shape[2]):
+                r = mask.shape[2]-1
+            mask = mask[:,:,r]  #for multi-chan, use R only
+                        
+        max_class = np.max(mask)
+        
+        if (n_classes <= max_class):
+            cum_sum = np.append(cum_sum,np.zeros(max_class-n_classes+1,dtype = np.int16))
+            n_classes = max_class + 1
+        
+        for cls in range (n_classes):
+            cum_sum[cls] += sum(sum(mask==cls))
+            
+    return cum_sum/len(labels)        
     
