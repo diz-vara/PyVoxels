@@ -42,13 +42,13 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     
-    save_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net';
+    save_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp';
     #sess.run(tf.global_variables_initializer())
     #saver = tf.train.Saver();
 
     #lr = sess.run(learning_rate)
     merged = tf.summary.merge_all()
-    lr = 2e-4
+    lr = 3e-4
     min_loss = 0.2
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
@@ -66,7 +66,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             sys.stdout.flush()      
             bnum = bnum + 1                   
         writer.add_summary(summary, epoch)                          
-        lr = lr * 0.997                     
+        lr = lr * 0.9965                     
         print(" Loss = {:g}".format(loss))     
         print()                        
         if (loss < min_loss):
@@ -105,14 +105,14 @@ alfa = (127,) #semi-transparent
 colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
 
 config = tf.ConfigProto(
-   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8),
+   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9),
    device_count = {'GPU': 1}
 )
 sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-2850'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox_net-0'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
@@ -169,7 +169,7 @@ writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/lo
 
 print('training')
 train_nn(sess, epochs, batch_size, get_batches_fn, train_op,
-         loss, input_image, correct_label, keep_prob, learning_rate, 5000) 
+         loss, input_image, correct_label, keep_prob, learning_rate, 0) 
 
 
 
