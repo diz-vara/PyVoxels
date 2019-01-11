@@ -19,14 +19,13 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_diz as lbl
+import labels_vox as lbl
 import numpy as np
 import helper
 
 import matplotlib.pyplot as plt
 
 
-base_dir = '/media/undead/'
 
 
 #%%
@@ -38,6 +37,8 @@ def _parse_function(filename):
 
 #%%
 
+base_dir = '/media/undead/'
+
 data_folder= base_dir + '/8Tb/out'
 out_folder = base_dir + '/ssd/Voxels'
 
@@ -45,16 +46,16 @@ image_shape=(576,1024)
 dataname = 'data/'
 
 ride = 'test11_2'
-camera = 'argus_cam_1'
+camera = 'argus_cam_5'
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = os.path.join(base_dir  + 'ssd/Voxels/out',ride,camera)
+out_folder = os.path.join(out_folder,ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
 #l = l[5::50] 
 
-road_name = 'Xroad/'
-overlay_name = 'Xoverlay/'
+road_name = 'Xroad_v/'
+overlay_name = 'Xoverlay_v/'
 
 try:
     os.makedirs(os.path.join(out_folder,road_name))
@@ -67,13 +68,13 @@ except:
     pass        
 
 
-labels_diz = lbl.labels_diz
-num_classes = len(labels_diz)
+labels = lbl.labels_vox
+num_classes = len(labels)
 
 alfa = (127,) #semi-transparent
-colors = np.array([label.color + alfa for label in labels_diz]).astype(np.uint8)
+colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
 #%%
-batchsize = 10
+batchsize = 12
 
 tf.reset_default_graph();
 
@@ -89,10 +90,13 @@ images,filenames,original_images = iterator.get_next()
 image0=original_images[0]
 
 
-load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
+#load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
+load_net = base_dir + 'Data/Segmentation/vox/vox-net-5837'
 
 meta = load_net + '.meta'
 
+
+csvname = os.path.join(out_folder, ride + "_" + camera + ".csv")
 
 one = tf.constant(1.0, dtype = float)
 restorer = tf.train.import_meta_graph(meta, input_map = {'image_input:0':images*256, 'keep_prob:0':one })
@@ -114,38 +118,46 @@ resized = tf.image.resize_images(argmax,(720,1280),
 cnt = 0
 num = len(l)
 
-while (True):
-    try:
-        if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
-            sub_dir = "/{:05d}/".format(cnt-cnt%2000)
-            try:
-                os.makedirs(os.path.join(out_folder,overlay_name + sub_dir))
-            except:
-                pass    
-            try:
-                os.makedirs(os.path.join(out_folder,road_name + sub_dir))
-            except:
-                pass
+with  open(csvname,"w") as csvfile:
+
+    while (True):
+        try:
+            if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
+                sub_dir = "/{:05d}/".format(cnt-cnt%2000)
+                try:
+                    os.makedirs(os.path.join(out_folder,overlay_name + sub_dir))
+                except:
+                    pass    
+                try:
+                    os.makedirs(os.path.join(out_folder,road_name + sub_dir))
+                except:
+                    pass
+        
     
-
-        out,names,im0 = sess.run([resized,filenames,image0])
-        out_colors = colors[out[0,:,:,0]]    
-
-        colors_img = scipy.misc.toimage(out_colors, mode="RGBA")
-        overlay_im = scipy.misc.toimage(im0)
-        overlay_im.paste(colors_img,box=None,mask=colors_img)
-        
-        
-        out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, out_folder)
-        scipy.misc.imsave(out_file, overlay_im)
-
-        for idx in range (len(names)):
-            out_file = names[idx].decode('utf-8').replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
-            cv2.imwrite(out_file,out[idx,:,:,0])
-            print(cnt, " from", num, " ", out_file)
-            cnt = cnt + 1            
-        
-    except tf.errors.OutOfRangeError:
-        break;
+            out,names,im0 = sess.run([resized,filenames,image0])
+            out_colors = colors[out[0,:,:,0]]    
+    
+            colors_img = scipy.misc.toimage(out_colors, mode="RGBA")
+            overlay_im = scipy.misc.toimage(im0)
+            overlay_im.paste(colors_img,box=None,mask=colors_img)
+            
+            
+            out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, out_folder)
+            scipy.misc.imsave(out_file, overlay_im)
+    
+            for idx in range (len(names)):
+                
+                im_name = names[idx].decode('utf-8')
+                out_file = im_name.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
+                _str = os.path.split(im_name)[1] + ", " + sub_dir + os.path.split(out_file)[1] + '\n'
+                csvfile.write(_str)
+    
+                cv2.imwrite(out_file,out[idx,:,:,0])
+                print(cnt, " from", num, " ", out_file)
+                cnt = cnt + 1            
+            
+        except tf.errors.OutOfRangeError:
+            break;
+    csvfile.close();        
 #%%
 
