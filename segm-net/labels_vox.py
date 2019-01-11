@@ -75,7 +75,8 @@ labels_vox = [
 
 colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
 
-ids = [l.id for l in labels_vox]
+indexes_0 = []
+
 max_id = max(ids)
 
 indexes = np.zeros(max_id + 1,dtype=int)
@@ -87,6 +88,8 @@ for i in range(max_id+1):
 
 
 #%%
+
+
 def idx2label(labels,idx):
     if (idx >= len(labels)):
         idx = 0

@@ -19,7 +19,7 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox as lbl
+import labels_vox_0 as lbl
 import numpy as np
 import helper
 
@@ -80,6 +80,9 @@ def segment_files(image_files):
         mx=np.argmax(b_res[res],2)
         original_shape = shapes[res]
         out_colors = colors[mx]    
+
+        if ( 'indexes_0' in globals() and len(indexes_0) >= len(colors)):
+            mx = indexes_0a[mx]
 
         out_image = cv2.resize(mx, (original_shape[1], original_shape[0]), 
                                     interpolation=cv2.INTER_NEAREST)

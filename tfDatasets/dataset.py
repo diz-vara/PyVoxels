@@ -157,8 +157,14 @@ with  open(csvname,"a") as csvfile:
                 out_name = sub_dir + os.path.split(out_file)[1]
                 _str = os.path.split(im_name)[1] + ", " + out_name + '\n'
                 csvfile.write(_str)
+                
+                mx = out[idx,:,:,0]
     
-                cv2.imwrite(out_file,out[idx,:,:,0])
+                if ( 'indexes_0' in globals() and len(indexes_0) >= len(colors)):
+                    mx = indexes_0a[mx]
+
+
+                cv2.imwrite(out_file,mx)
                 print(cnt, " from", total_num, " ", out_name)
                 cnt = cnt + 1            
             
