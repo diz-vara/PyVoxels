@@ -10,7 +10,7 @@ import scipy
 
 
 #
-
+save_file = '/media/avarfolomeev/storage/Data/Voxels/Signs/nets/thin-130.ckpt' #./mixNet0_named.ckpt' #'./nets/thin/mixtNet0_named.ckpt.final1'
 _classes = classes_thin
 
 n_classes = len(_classes) #7 for thick
@@ -37,7 +37,6 @@ def test_new_data(xv):
 
 #%%
 
-save_file = '/media/avarfolomeev/storage/Data/Voxels/Signs/nets/thin-130.ckpt' #./mixNet0_named.ckpt' #'./nets/thin/mixtNet0_named.ckpt.final1'
 
 print ("testing " , save_file)
 
