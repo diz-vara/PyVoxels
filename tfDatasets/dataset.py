@@ -19,7 +19,7 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox as lbl
+import labels_vox_0 as lbl
 import numpy as np
 import helper
 
@@ -52,6 +52,12 @@ data_folder = os.path.join(data_folder,ride, camera)
 out_folder = os.path.join(out_folder,ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
+
+
+start = 30000
+total_num = len(l)
+
+l = l[start:]
 #l = l[5::50] 
 
 road_name = 'Xroad_v/'
@@ -68,7 +74,7 @@ except:
     pass        
 
 
-labels = lbl.labels_vox
+labels = lbl.labels_vox_0
 num_classes = len(labels)
 
 alfa = (127,) #semi-transparent
@@ -115,10 +121,9 @@ argmax = tf.expand_dims(argmax,-1)
 resized = tf.image.resize_images(argmax,(720,1280), 
                                  tf.image.ResizeMethod.NEAREST_NEIGHBOR);
 
-cnt = 0
-num = len(l)
+cnt = start
 
-with  open(csvname,"w") as csvfile:
+with  open(csvname,"a") as csvfile:
 
     while (True):
         try:
@@ -149,11 +154,12 @@ with  open(csvname,"w") as csvfile:
                 
                 im_name = names[idx].decode('utf-8')
                 out_file = im_name.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
-                _str = os.path.split(im_name)[1] + ", " + sub_dir + os.path.split(out_file)[1] + '\n'
+                out_name = sub_dir + os.path.split(out_file)[1]
+                _str = os.path.split(im_name)[1] + ", " + out_name + '\n'
                 csvfile.write(_str)
     
                 cv2.imwrite(out_file,out[idx,:,:,0])
-                print(cnt, " from", num, " ", out_file)
+                print(cnt, " from", total_num, " ", out_name)
                 cnt = cnt + 1            
             
         except tf.errors.OutOfRangeError:

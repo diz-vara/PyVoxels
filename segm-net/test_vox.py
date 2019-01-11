@@ -181,11 +181,11 @@ base_dir = '/media/undead/8Tb/'
 data_folder= base_dir + '/out/'
 
 
-ride = 'test13_4'
-camera = 'argus_cam_2'
+ride = 'test11_2'
+camera = 'argus_cam_5'
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = data_folder #os.path.join('/media/undead/ssd/Voxels/',ride,camera)
+out_folder = os.path.join('/media/undead/ssd/Voxels/',ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
 
@@ -209,8 +209,8 @@ out_shape = (image_shape[0], image_shape[1], num_classes)
 batch_size = 10
 cnt = 0
 num = len(l)
-start  = 6000
-end = -1
+start  = 0
+end = 12540
 flist = []
 
 
@@ -218,7 +218,7 @@ flist = []
 if (end < 0 or end > num):
     end = num;
 
-csvname = os.path.join(out_folder, ride + "_" + camera + ".csv")
+csvname = os.path.join(out_folder, ride + "_" + camera + "_0" + ".csv")
  
 
 with  open(csvname,"w") as csvfile:
@@ -236,21 +236,27 @@ with  open(csvname,"w") as csvfile:
             
         im_file = l[cnt]
         flist.append(im_file)
-        str = im_file + ", " + im_file.replace(dataname,road_name + sub_dir).replace('.jpg','.png').replace(data_folder, out_folder) + '\n'
-        csvfile.write(str)
 
+        out_file = im_file.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
+        out_name = sub_dir + os.path.split(out_file)[1]
+        _str = os.path.split(im_file)[1] + ", " + out_name + '\n'
+        csvfile.write(_str)
+
+
+    csvfile.close();            
+#%%
+
+"""
         print(cnt, " from", num, " ", im_file)
         
         if (len(flist) >= batch_size or cnt == end-1):
             im_out, masks = segment_files(flist)
             out_file = flist[0].replace(dataname,overlay_name + sub_dir).replace(data_folder,out_folder)
 
+
             scipy.misc.imsave(out_file, im_out)
             for idx in range (len(flist)):
                 out_file = flist[idx].replace(dataname,road_name + sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
                 cv2.imwrite(out_file,masks[idx])
             flist = []    
-            
-    csvfile.close();            
-#%%
-
+"""            
