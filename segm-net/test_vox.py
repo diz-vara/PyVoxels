@@ -19,7 +19,7 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox as lbl
+import labels_vox_0 as lbl
 import numpy as np
 import helper
 
@@ -35,9 +35,9 @@ colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
 
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-base_dir = '/media/avarfolomeev/storage'
+base_dir = '/media/undead/Data'
 
-load_net = base_dir + '/Data/Segmentation/vox_segm/vox-net-2850'
+load_net = base_dir + '/Segmentation/vox/vox-net-5837'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
@@ -80,6 +80,9 @@ def segment_files(image_files):
         mx=np.argmax(b_res[res],2)
         original_shape = shapes[res]
         out_colors = colors[mx]    
+
+        if ( 'indexes_0' in globals() and len(indexes_0) >= len(colors)):
+            mx = indexes_0a[mx]
 
         out_image = cv2.resize(mx, (original_shape[1], original_shape[0]), 
                                     interpolation=cv2.INTER_NEAREST)
@@ -177,20 +180,20 @@ elif dataset == 'Work':
     
 
 
-base_dir = '/media/avarfolomeev/storage/Data'
-data_folder= base_dir + '/Voxels/201809_usa'
+base_dir = '/media/undead/8Tb/'
+data_folder= base_dir + '/out/'
 
 
-ride = 'test7_2'
-camera = 'argus_cam_2'
+ride = 'test11_2'
+camera = 'argus_cam_5'
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = data_folder #os.path.join('/media/undead/ssd/Voxels/',ride,camera)
+out_folder = os.path.join('/media/undead/ssd/Voxels/',ride,camera)
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 
 
-road_name = 'Xroad'
-overlay_name = 'Xoverlay'
+road_name = 'Xroad_v'
+overlay_name = 'Xoverlay_v'
 
 try:
     os.makedirs(os.path.join(out_folder,road_name))
@@ -210,34 +213,53 @@ batch_size = 10
 cnt = 0
 num = len(l)
 start  = 0
-end = -1
+end = 12540
 flist = []
+
 
 
 if (end < 0 or end > num):
     end = num;
-for cnt in range(start,end):
-    if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
-        sub_dir = "/{:05d}/".format(cnt-cnt%2000)
-        try:
-            os.makedirs(os.path.join(out_folder,overlay_name + sub_dir))
-        except:
-            pass    
-        try:
-            os.makedirs(os.path.join(out_folder,road_name + sub_dir))
-        except:
-            pass
-        
-    im_file = l[cnt]
-    flist.append(im_file)
-    print(cnt, " from", num, " ", im_file)
-    if (len(flist) >= batch_size or cnt == end-1):
-        im_out, masks = segment_files(flist)
-        out_file = flist[0].replace(dataname,overlay_name + sub_dir).replace(data_folder,out_folder)
-        scipy.misc.imsave(out_file, im_out)
-        for idx in range (len(flist)):
-            out_file = flist[idx].replace(dataname,road_name + sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
-            cv2.imwrite(out_file,masks[idx])
-        flist = []    
+
+csvname = os.path.join(out_folder, ride + "_" + camera + "_0" + ".csv")
+ 
+
+with  open(csvname,"w") as csvfile:
+    for cnt in range(start,end):
+        if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
+            sub_dir = "/{:05d}/".format(cnt-cnt%2000)
+            try:
+                os.makedirs(os.path.join(out_folder,overlay_name + sub_dir))
+            except:
+                pass    
+            try:
+                os.makedirs(os.path.join(out_folder,road_name + sub_dir))
+            except:
+                pass
+            
+        im_file = l[cnt]
+        flist.append(im_file)
+
+        out_file = im_file.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
+        out_name = sub_dir + os.path.split(out_file)[1]
+        _str = os.path.split(im_file)[1] + ", " + out_name + '\n'
+        csvfile.write(_str)
+
+
+    csvfile.close();            
 #%%
 
+"""
+        print(cnt, " from", num, " ", im_file)
+        
+        if (len(flist) >= batch_size or cnt == end-1):
+            im_out, masks = segment_files(flist)
+            out_file = flist[0].replace(dataname,overlay_name + sub_dir).replace(data_folder,out_folder)
+
+
+            scipy.misc.imsave(out_file, im_out)
+            for idx in range (len(flist)):
+                out_file = flist[idx].replace(dataname,road_name + sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
+                cv2.imwrite(out_file,masks[idx])
+            flist = []    
+"""            

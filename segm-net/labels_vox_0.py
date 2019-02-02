@@ -38,7 +38,7 @@ sLabel = namedtuple( 'Label' , [
 # Make sure to provide your results using the original IDs and not the training IDs.
 # Note that many IDs are ignored in evaluation and thus you never need to predict these!
 
-labels_vox = [
+labels_vox_0 = [
     #       name                id    color
     sLabel(  'unlabeled'        ,  0 , (    0,    0,    0) ),
     sLabel(  'sky'              ,  1 , ( 0x46, 0x82, 0xB4) ),
@@ -64,7 +64,6 @@ labels_vox = [
     sLabel(  'Transport'        , 21 , (    0,    0, 0x8E) ), 
     sLabel(  'Bicycle,motorbike', 22 , ( 0x77, 0x0B, 0x20) ),
     sLabel(  'Person'           , 23 , ( 0xDC, 0x14, 0x3C) ),
-    sLabel(  'License_plate'    , 24 , ( 0x70, 0x70, 0xFF) ),
     sLabel(  'Animal'           , 25 , ( 0xCA, 0x96, 0xC7) ), 
     sLabel(  'Curb'             , 26 , ( 0x6c, 0xBA, 0xC1) ), 
     sLabel(  'Drop Curb'        , 27 , ( 0x74, 0x6C, 0xC1) ),
@@ -73,30 +72,33 @@ labels_vox = [
 
 ]
 
-colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
+colors_vox_0 = np.array([label.color for label in labels_vox_0]).astype(np.uint8)
 
-indexes_0 = []
-
-max_id = max(ids)
+indexes_0 = [l.id for l in labels_vox_0]
+indexes_0a = np.array(indexes_0)
+max_id = max(indexes_0)
 
 indexes = np.zeros(max_id + 1,dtype=int)
 
 for i in range(max_id+1):
-    if (i in ids):
-        indexes[i] = ids.index(i)
+    if (i in indexes_0):
+        indexes[i] = indexes_0.index(i)
     
 
 
 #%%
 
 
+
 def idx2label(labels,idx):
     if (idx >= len(labels)):
         idx = 0
-    return labels[idx].id 
+    return labels[idx].id
     
 def idx2label_vox(idx):
-    return idx2label(labels_vox, idx)
+    if (idx >= len(indexes_0)):
+        idx = 0
+    return indexes_0[idx]
 
 
 def label_vox2idx(label):
@@ -133,6 +135,28 @@ def voxelLabels2idx(base_dir, in_dir, out_dir):
         label_in[label_in > maxlabel] =  0
         
         label_out = indexes[label_in]
+        cv2.imwrite(os.path.join(out_dir, label_file), label_out)
+
+
+def voxelLabels0_2_labels(base_dir, in_dir, out_dir):
+    in_dir, out_dir = create_dirs(base_dir, in_dir, out_dir);
+    print('Loading "voxelmaps_0" labels from ' + in_dir)
+
+    im_files = sorted(os.listdir(in_dir))
+    cnt = 0
+    end_string = ' from ' + str(len(im_files))
+    
+    maxlabel = len(indexes_0);
+
+    for label_file in im_files:
+        print(str(cnt) + end_string)
+        cnt = cnt+1
+        label_in = cv2.imread(os.path.join(in_dir, label_file),-1)
+        if (len(label_in.shape) > 2):  #if RGB, use only R
+            label_in = label_in[:,:,2]
+        label_in[label_in >= maxlabel] =  0
+        
+        label_out = indexes_0[label_in]
         cv2.imwrite(os.path.join(out_dir, label_file), label_out)
         
 #%%
