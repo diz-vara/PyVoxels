@@ -68,6 +68,10 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 100, t
         _nx = nx
         _ny = ny
         ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
+        if (ret):
+            term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
+            cv2.cornerSubPix(img,corners,(_nx,_ny), (-1,-1),term)
+                             
         name = os.path.split(entry)[1]
         print(name, ret)
         #plt.imshow(img, cmap = 'gray')
