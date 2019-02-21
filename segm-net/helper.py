@@ -22,8 +22,11 @@ class DLProgress(tqdm):
         self.last_block = block_num
 
 
-def build_lut (invgamma):
-    table = np.array([ ((i/255.0) ** invgamma) * 255 for i in np.arange(0,256)]).astype("uint8")    
+def build_lut (invgamma, shift):
+    table = np.array([ np.min((i/255.0) ** invgamma + shift) for i in np.arange(0,256)])
+    table[table < 0] = 0
+    table[table > 1] = 1
+    table = (table*255).astype("uint8")    
     return table
 
 def maybe_download_pretrained_vgg(data_dir):
@@ -106,7 +109,7 @@ def get_image_and_labels_list_D(root_path, mode, image_path, label_path):
     return image_list, label_list
 
 
-def gen_batch_function(data_folder, image_shape, num_classes):
+def gen_batch_function(data_folder, split, image_shape, num_classes):
     """
     Generate function to create batches of training data
     :param data_folder: Path to folder that contains all the datasets
@@ -115,9 +118,10 @@ def gen_batch_function(data_folder, image_shape, num_classes):
     """
     print("num_classes=",num_classes)
     image_paths, label_paths = get_image_and_labels_list_D(data_folder, 
-                                                         'train',
+                                                         split,
                                                          'image',
                                                          'gt')
+    
     image_nr = len(image_paths)
     print("Image Number = ",image_nr)
     one_hot = np.zeros((num_classes, num_classes), np.int32 )
@@ -185,14 +189,19 @@ def gen_batch_function(data_folder, image_shape, num_classes):
                                 x_shift:x_shift+image_shape[1], :]
 
 
-                gamma = np.random.rand()/2 + 0.75 #0.75 .... 1.25
-                table = build_lut(gamma)
+                gamma = np.random.rand() + 0.5 #0.5 .... 1.5
+                shift = (np.random.rand() - 0.5 ) / 2
+                table = build_lut(gamma, shift)
                 
                 cropped = cv2.LUT(cropped, table)
+                #red channel random adjustment
+                #cropped[:,:,2] = (cropped[:,:,2]*np.random.uniform(0.9,1)).astype(np.uint8)
+                #cropped[:,:,0] *= np.random.uniform(0.9,1)
                 
                 gt_cropped = gt_image[y_shift:y_shift+image_shape[0], 
                                 x_shift:x_shift+image_shape[1]]
 
+                #augmentation - mirroring
                 if (np.random.rand() > 0.5):
                     cropped = np.fliplr(cropped)
                     gt_cropped = np.fliplr(gt_cropped)
@@ -201,7 +210,6 @@ def gen_batch_function(data_folder, image_shape, num_classes):
                 gt_cropped[gt_cropped >= num_classes] = 0
                 gt_cropped[gt_cropped <  0] = 0
                 
-                #augmentation - mirroring
     
     
                 onehot_label = one_hot[gt_cropped]

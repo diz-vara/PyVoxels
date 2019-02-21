@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 import tensorflow.contrib.slim as slim
 import time
 import labels_vox as lbl
-
+import sys
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -104,14 +104,14 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*2, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*3, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 16,
+    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 10,
                                              strides = (8,8),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -170,8 +170,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
     #lr = sess.run(learning_rate)
     #merged = tf.summary.merge_all()
-    lr = 1e-3
-    min_loss = 2.0l
+    lr = 2e-4
+    min_loss = 2.0
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
         print(" LR = {:f}".format(lr))     
@@ -198,7 +198,7 @@ tf.reset_default_graph();
 def run():
     labels = lbl.labels_vox
     num_classes = len(labels)
-    image_shape = (576, 1024)
+    image_shape=(672,800)
     data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
     runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
@@ -222,11 +222,11 @@ def run():
     with tf.Session(config=config) as sess:
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm',
-                                           image_shape, num_classes)
+        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
+                                           'train',image_shape, num_classes)
     
     
-        epochs = 150
+        epochs = 1000
         batch_size = 4
         
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes],
@@ -242,6 +242,8 @@ def run():
     
         logits, train_op, loss = optimize(nn_output, correct_label, 
                                           learning_rate, num_classes)
+        
+        g_vars = tf.global_variables()
     
         print('training')
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op,
