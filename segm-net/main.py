@@ -104,14 +104,14 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*2, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*3, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 20,
+    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 10,
                                              strides = (8,8),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -198,7 +198,7 @@ tf.reset_default_graph();
 def run():
     labels = lbl.labels_vox
     num_classes = len(labels)
-    image_shape=(576,1024)
+    image_shape=(672,800)
     data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
     runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
@@ -223,7 +223,7 @@ def run():
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
-                                           image_shape, num_classes)
+                                           'train',image_shape, num_classes)
     
     
         epochs = 1000

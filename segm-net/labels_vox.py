@@ -75,7 +75,7 @@ labels_vox = [
 
 colors_vox = np.array([label.color for label in labels_vox]).astype(np.uint8)
 
-indexes_0 = []
+ids = [l.id for l in labels_vox]
 
 max_id = max(ids)
 
