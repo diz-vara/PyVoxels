@@ -19,68 +19,101 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox_0 as lbl
+import labels_vox as lbl
 import numpy as np
 import helper
 
 import matplotlib.pyplot as plt
-
+import sys
 
 
 
 #%%
 def _parse_function(filename):
-  image_string = tf.read_file(filename)
-  image_decoded = tf.image.decode_jpeg(image_string)
-  image_resized = tf.image.resize_images(image_decoded, image_shape)
-  return image_resized/256., filename, image_decoded
+  try:  
+      image_string = tf.read_file(filename)
+      image_decoded = tf.image.decode_jpeg(image_string)
+      image_resized = tf.image.resize_images(image_decoded, image_shape)
+  except:
+      print("Error reading file ", filename)
+      image_resized = None
+      image_decoded = None
+  return image_resized, filename, image_decoded
 
 #%%
 
 base_dir = '/media/undead/'
 
-data_folder= base_dir + '/8Tb/out'
+data_folder= base_dir + '/8Tb/201902_USA/out'
 out_folder = base_dir + '/ssd/Voxels'
 
-image_shape=(576,1024)
+image_shape= (1024,1216)
 dataname = 'data/'
 
-ride = 'test11_2'
-camera = 'argus_cam_5'
+ride = '20190216_115220'
+camera = 'argus_cam_0'
+
+
+nArg = len(sys.argv)
+if (nArg > 4):
+  data_folder = sys.argv[1]
+  out_folder = sys.argv[2]
+  ride = sys.argv[3]
+  camera = sys.argv[4]
+elif (nArg > 2):  
+  ride = sys.argv[1]
+  camera = sys.argv[2]
 
 data_folder = os.path.join(data_folder,ride, camera)
-out_folder = os.path.join(out_folder,ride,camera)
+camera_folder = os.path.join(out_folder,ride,camera)
+
+print("reading from  ", os.path.join(data_folder, dataname));
+
 l = glob(os.path.join(data_folder, dataname, '*.jpg'))
+l.sort()
+print(len(l), " files read");
 
 
 
-start = 30000
+start = 0000
+if (nArg > 5):
+    try:
+        start = int(sys.argv[5])
+    except:
+        start = 0;    
+
+
 total_num = len(l)
 
 l = l[start:]
 #l = l[5::50] 
 
-road_name = 'Xroad_v/'
-overlay_name = 'Xoverlay_v/'
+road_name = 'Xroad/'
+overlay_name = 'Xoverlay/'
 
 try:
-    os.makedirs(os.path.join(out_folder,road_name))
+    os.makedirs(os.path.join(camera_folder,road_name))
 except:
     pass        
 
 try:
-    os.makedirs(os.path.join(out_folder,overlay_name))
+    os.makedirs(os.path.join(camera_folder,overlay_name))
 except:
     pass        
 
 
-labels = lbl.labels_vox_0
+print("writing to ", os.path.join(camera_folder, road_name));
+
+
+labels = lbl.labels_vox
 num_classes = len(labels)
 
 alfa = (127,) #semi-transparent
 colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
 #%%
-batchsize = 12
+batchsize = 5
+
+
 
 tf.reset_default_graph();
 
@@ -95,21 +128,27 @@ images,filenames,original_images = iterator.get_next()
 
 image0=original_images[0]
 
+#kernel = np.ones((batchsize,1,1,3))
+#kernel[0,0,0,0] = 0.9
+#images_adj = tf.nn.conv2d(images, kernel,[1,1,1,1],'SAME')
+
 
 #load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
-load_net = base_dir + 'Data/Segmentation/vox/vox-net-5837'
+#load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
+load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-8258'
 
 meta = load_net + '.meta'
 
 
-csvname = os.path.join(out_folder, ride + "_" + camera + ".csv")
+csvname = os.path.join(out_folder, ride, ride + "_" + camera + ".csv")
 
 one = tf.constant(1.0, dtype = float)
-restorer = tf.train.import_meta_graph(meta, input_map = {'image_input:0':images*256, 'keep_prob:0':one })
+restorer = tf.train.import_meta_graph(meta, input_map = {'image_input:0':images, 'keep_prob:0':one })
 
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 restorer.restore(sess,load_net)
+
 nn_output = tf.get_default_graph().get_tensor_by_name('layer3_up/BiasAdd:0')
 
 #logits = tf.reshape(nn_output,(-1,num_classes))
@@ -118,42 +157,50 @@ softmax = tf.nn.softmax(nn_output,3)
 argmax = tf.math.argmax(softmax, axis=3)
 argmax = tf.expand_dims(argmax,-1)
 
-resized = tf.image.resize_images(argmax,(720,1280), 
-                                 tf.image.ResizeMethod.NEAREST_NEIGHBOR);
+#resized = tf.image.resize_images(argmax, image0.get_shape(), #(1028,1232), 
+#                                 tf.image.ResizeMethod.NEAREST_NEIGHBOR);
 
 cnt = start
+use_subdirs = False
 
 with  open(csvname,"a") as csvfile:
 
     while (True):
         try:
-            if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
-                sub_dir = "/{:05d}/".format(cnt-cnt%2000)
-                try:
-                    os.makedirs(os.path.join(out_folder,overlay_name + sub_dir))
-                except:
-                    pass    
-                try:
-                    os.makedirs(os.path.join(out_folder,road_name + sub_dir))
-                except:
-                    pass
+            if (use_subdirs):
+                if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
+                    sub_dir = "/{:05d}/".format(cnt-cnt%2000)
+                    try:
+                        os.makedirs(os.path.join(camera_folder,overlay_name + sub_dir))
+                    except:
+                        pass    
+                    try:
+                        os.makedirs(os.path.join(camera_folder,road_name + sub_dir))
+                    except:
+                        pass
+            else:
+                sub_dir = '';
         
     
-            out,names,im0 = sess.run([resized,filenames,image0])
+            out,names,im0 = sess.run([argmax,filenames,original_images])
             out_colors = colors[out[0,:,:,0]]    
-    
+            original_shape = im0[0].shape[1::-1]
+            out_colors = cv2.resize(out_colors, original_shape, interpolation=cv2.INTER_NEAREST)
             colors_img = scipy.misc.toimage(out_colors, mode="RGBA")
-            overlay_im = scipy.misc.toimage(im0)
+            overlay_im = scipy.misc.toimage(im0[0])
+
+            #print(im0[0].shape, out_colors.shape)
+            
             overlay_im.paste(colors_img,box=None,mask=colors_img)
             
             
-            out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, out_folder)
+            out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, camera_folder)
             scipy.misc.imsave(out_file, overlay_im)
     
             for idx in range (len(names)):
                 
                 im_name = names[idx].decode('utf-8')
-                out_file = im_name.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, out_folder)
+                out_file = im_name.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, camera_folder)
                 out_name = sub_dir + os.path.split(out_file)[1]
                 _str = os.path.split(im_name)[1] + ", " + out_name + '\n'
                 csvfile.write(_str)
@@ -163,6 +210,8 @@ with  open(csvname,"a") as csvfile:
                 if ( 'indexes_0' in globals() and len(indexes_0) >= len(colors)):
                     mx = indexes_0a[mx]
 
+                original_shape = im0[idx].shape[1::-1]
+                mx = cv2.resize(mx,original_shape, interpolation=cv2.INTER_NEAREST)
 
                 cv2.imwrite(out_file,mx)
                 print(cnt, " from", total_num, " ", out_name)
