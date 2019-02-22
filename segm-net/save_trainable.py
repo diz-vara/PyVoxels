@@ -22,7 +22,7 @@ config = tf.ConfigProto(
 sess = tf.Session(config = config)
 
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-5837'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-673'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
