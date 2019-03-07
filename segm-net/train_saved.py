@@ -131,7 +131,7 @@ export_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/exports/' +
 
 labels = lbl.labels_vox
 num_classes = len(labels)
-image_shape=(576,1024)
+image_shape=(704,832)
 
 epochs = 5000
 batch_size = 4
@@ -148,7 +148,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-3-8703'  #lp-7004'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-8855'  #lp-7004'
 
 min_loss_name = 'min_loss.txt'
 
@@ -206,7 +206,7 @@ writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/lo
 
 print('training')
 train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn, train_op,
-         loss, input_image, correct_label, keep_prob, learning_rate, 8800) 
+         loss, input_image, correct_label, keep_prob, learning_rate, 8900) 
 
 
 
