@@ -57,11 +57,7 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
         print ('epoch {}  '.format(epoch))
         sys.stdout.flush()
         bnum = 0
-        # read updated min_loss from the file
-        try:
-            min_loss = float(open(min_loss_file).read())
-        except:
-            0;    
+        #read updated lr from the file
         try:
             lr = float(open(lr_file).read())
         except:
@@ -103,7 +99,14 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
         
         writer.add_summary(summary, epoch)
         print("\r\nLoss = {:g} {:g}".format(train_loss, val_loss))     
-        print()                        
+        print()                
+
+        # read updated min_loss from the file
+        try:
+            min_loss = float(open(min_loss_file).read())
+        except:
+            0;    
+        
         if (val_loss < min_loss):
             print("saving at step {:d}".format(epoch+base))     
             min_loss = val_loss;
@@ -148,7 +151,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-8855'  #lp-7004'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-8910'  #lp-7004'
 
 min_loss_name = 'min_loss.txt'
 
@@ -206,7 +209,7 @@ writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/lo
 
 print('training')
 train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn, train_op,
-         loss, input_image, correct_label, keep_prob, learning_rate, 8900) 
+         loss, input_image, correct_label, keep_prob, learning_rate, 8950) 
 
 
 
