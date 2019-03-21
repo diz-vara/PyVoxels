@@ -158,6 +158,7 @@ def augmentImgClass(imgList, outOrN ):
 #%%
 
 def augmentImageList(X,Y,targetCount):
+    n_classes = max(Y) + 1
     indicies = [np.where(Y == i)[0] for i in range(n_classes)]
     totalLen = targetCount * n_classes;
     targetXShape = list(X.shape);

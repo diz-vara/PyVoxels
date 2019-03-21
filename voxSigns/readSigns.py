@@ -11,8 +11,9 @@ import glob
 import scipy.misc
 import numpy as np
 
-
-
+from normalize import *
+from augment import *
+from splitIndicies import *
 
 def read_signs(root_dir):
     

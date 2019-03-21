@@ -5,7 +5,7 @@ Created on Wed Mar 22 11:12:14 2017
 @author: avarfolomeev
 """
 
-
+import numpy as np
 
 def splitIndicies (Index, percent,step=0):
     out0 = np.empty(0,np.int32);
