@@ -26,7 +26,9 @@ import sys
 
 
 #%%
-def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,train_op, cross_entropy_loss, input_image,
+def train_nn(sess, epochs, batch_size, 
+             dataset_file, image_shape, num_classes,
+             train_op, cross_entropy_loss, input_image,
              corr_label, keep_prob, learning_rate, base = 0):
     """
     Train neural network and print out the loss during training.
@@ -56,6 +58,12 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
         sys.stdout.flush()
+        
+        get_train_batches_fn = build_batch_fn(dataset_file, 'train',
+                                              image_shape, num_classes);
+        
+        get_val_batches_fn = build_batch_fn(dataset_file, 'val',
+                                              image_shape, num_classes);
         bnum = 0
         #read updated lr from the file
         try:
@@ -120,17 +128,28 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
            
             
 #%%
+def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
+    try:
+        _base_dir = open(_dataset_descriptor,'rt').readline().rstrip('\n')
+    except:    
+        _base_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g'
+    
+    
+    _fn = helper.gen_batch_function(_base_dir,
+                                   _split,_image_shape, _num_classes)
+    return (_fn)
+
+            
+            
 #%%
 
 #def retrain():
     
 tf.reset_default_graph()
 
-data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
-runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
+dataset_file = '/media/avarfolomeev/storage/Data/Segmentation/dataset.txt'
 timestamp = time.strftime("%Y%m%d_%H%M%S");
 
-export_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/exports/' + timestamp;
 
 labels = lbl.labels_vox
 num_classes = len(labels)
@@ -151,7 +170,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-8910'  #lp-7004'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-3-9259'  #lp-7004'
 
 min_loss_name = 'min_loss.txt'
 
@@ -192,12 +211,6 @@ tf.summary.scalar('loss', loss)
 tf.summary.scalar('learning_rate', learning_rate)
 
 
-
-get_train_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
-                                           'train',image_shape, num_classes)
-get_val_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
-                                           'val',image_shape, num_classes)
-
 train_op=model.get_collection('train_op')[0]
 
 train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
@@ -205,11 +218,13 @@ train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
 #train_op = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(loss, var_list = train_vars)
 
 
-writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/logs-8')
+writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/logs-9')
 
 print('training')
-train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn, train_op,
-         loss, input_image, correct_label, keep_prob, learning_rate, 8950) 
+train_nn(sess, epochs, batch_size, 
+         dataset_file, image_shape, num_classes,
+         train_op,
+         loss, input_image, correct_label, keep_prob, learning_rate, 9300) 
 
 
 
