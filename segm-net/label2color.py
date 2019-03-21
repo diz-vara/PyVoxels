@@ -44,13 +44,13 @@ def label2color(base_dir, in_dir, out_dir, colors):
         print(str(cnt) + end_string)
         cnt = cnt+1
         label_in = (plt.imread(os.path.join(in_dir, label_file))*255.).astype(np.uint8)
-        if (len(label_in.shape) > 1):
+        if (len(label_in.shape) > 2):
             label_in = label_in[:,:,0]
         colors_out = colors[label_in]
         plt.imsave(os.path.join(out_dir, label_file),colors_out)
     
     
-def colors2label(base_dir, in_dir, out_dir, colors):
+def colors2label(base_dir, in_dir, out_dir, colors, do_blur = False):
     
     in_dir = os.path.join(base_dir, in_dir)
     out_dir = os.path.join(base_dir, out_dir)
@@ -80,7 +80,8 @@ def colors2label(base_dir, in_dir, out_dir, colors):
         colors_in = cv2.imread(os.path.join(in_dir, label_file))
         colors_in = cv2.cvtColor(colors_in,cv2.COLOR_RGB2BGR)
         
-        colors_blur = cv2.GaussianBlur(colors_in,(3,3),1);
+        if (do_blur):
+            colors_in = cv2.GaussianBlur(colors_in,(3,3),1);
         
         
         
@@ -91,7 +92,7 @@ def colors2label(base_dir, in_dir, out_dir, colors):
         
         for idx in range(len(colors)):
             color = colors[idx]
-            s = (colors_blur == color).all(axis=2)
+            s = (colors_in == color).all(axis=2)
             label[s] = idx            
         
         cv2.imwrite(os.path.join(out_dir, label_file), label)
