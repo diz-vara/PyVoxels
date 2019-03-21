@@ -15,14 +15,14 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.contrib.layers import batch_norm
 
-save_file = './mixNet0_named.ckpt'
+save_file = './mixNet0_arr.ckpt'
 
 # MixNet architecture:
-def MixNetArr(x, nClasses):
+def MixNetArr(x, keep_prob, nClasses):
     s = 0.1
     
     #32x32x3 -> 30x30x4
-    w11 = tf.Variable(tf.truncated_normal((3,3,1,4),0,s),'w11')
+    w11 = tf.Variable(tf.truncated_normal((1,3,1,4),0,s),'w11')
     b11 = tf.Variable(tf.truncated_normal([4],0,0.001),'b11')
 
     c1 = tf.nn.conv2d(x,w11, strides = [1,1,1,1], padding='VALID', name='conv11') + b11

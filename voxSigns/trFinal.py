@@ -6,6 +6,8 @@ Created on Wed Mar 22 19:19:38 2017
 @author: avarfolomeev
 """
 
+import tensorflow as tf
+import numpy as np
 
 
 EPOCHS = 60
@@ -23,15 +25,15 @@ batch_x = tf.placeholder(tf.float32, [None,32,32,1])
 batch_y = tf.placeholder(tf.int32, (None))
 
 
-n_classes = 10 #37 #7 for thic
+n_classes = 11 #37 #7 for thic
 
 ohy = tf.one_hot(batch_y,n_classes);
-fc2 = MixNetArr(batch_x, n_classes)
+fc2 = MixNetArr(batch_x, keep_prob, n_classes)
 
 step = tf.Variable(0, trainable=False)
 starter_learning_rate = 1e-3
 learning_rate = tf.train.exponential_decay(starter_learning_rate, step, 
-                                          50, 0.995, staircase=True)
+                                          50, 0.999, staircase=True)
 
 
 loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=fc2, labels=ohy))
@@ -66,6 +68,9 @@ def eval_data(xv, yv):
             _batchSize = _nSamples - batch_start;
 
         bx = xv[batch_start:batch_start + _batchSize]
+        if (len(bx.shape) < 4):
+            bx = np.expand_dims(bx,-1)
+        
         by = yv[batch_start:batch_start + _batchSize]
         loss, acc = sess.run([loss_op, accuracy_op], feed_dict={batch_x : bx, batch_y: by, keep_prob: 1.0})
         total_acc += (acc * bx.shape[0])
@@ -99,6 +104,9 @@ with tf.Session() as sess:
                 _batchSize = _nSamples - _batchStart;
 
             bx = Xgn_t[idx[_batchStart:_batchStart + _batchSize]]
+            if (len(bx.shape) < 4):
+                bx = np.expand_dims(bx,-1)
+            
             by = Yg_t[idx[_batchStart:_batchStart + _batchSize]]
     
             _,loss = sess.run([train_op, loss_op], feed_dict={batch_x: bx, batch_y: by, keep_prob: 0.5})
