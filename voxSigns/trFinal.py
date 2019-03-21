@@ -18,15 +18,15 @@ keep_prob = tf.placeholder(tf.float32)
 
 
 #sigs are 32x32x3
-batch_x = tf.placeholder(tf.float32, [None,32,32,3])
+batch_x = tf.placeholder(tf.float32, [None,32,32,1])
 # 
 batch_y = tf.placeholder(tf.int32, (None))
 
 
-n_classes = 37 #7 for thick
+n_classes = 10 #37 #7 for thic
 
 ohy = tf.one_hot(batch_y,n_classes);
-fc2 = MixNet(batch_x, n_classes)
+fc2 = MixNetArr(batch_x, n_classes)
 
 step = tf.Variable(0, trainable=False)
 starter_learning_rate = 1e-3
@@ -77,7 +77,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_file = './nets/thick-60.ckpt'
+save_file = './nets/arrows-0.ckpt'
 
 with tf.Session() as sess:
 

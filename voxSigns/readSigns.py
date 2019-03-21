@@ -16,7 +16,7 @@ import numpy as np
 
 def read_signs(root_dir):
     
-    filenames =  [f for f in glob.iglob(root_dir + '/**/*.png', recursive=True)]
+    filenames =  [f for f in glob.iglob(root_dir + '/**/*.*g', recursive=True)]
         
 
     units = []
@@ -24,26 +24,29 @@ def read_signs(root_dir):
         
         img = scipy.misc.imread(f)
         (w,h,c) = img.shape
+
+        img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
         
+        """
         if ( abs (w-h) > 12) :
             continue;
             
         if ( w != h):
             w = min(w,h)
             img = img[:w,:w,:]
-            
+        """    
         folder = os.path.split(f)[0];
         folder, thin_class = os.path.split(folder)
 
         thick_class = thin_class
-        while (folder != root_dir and folder != '/'):
-            folder, thick_class = os.path.split(folder)
+        #while (folder != root_dir and folder != '/'):
+        #    folder, thick_class = os.path.split(folder)
             
         units.append((img, thin_class,thick_class))
 
     return units
 
-
+r = read_signs(root_dir)
 images = [_r[0] for _r in r]
 t_thin = np.array([_r[1] for _r in r])
 t_thick = np.array([_r[2] for _r in r])
@@ -52,7 +55,7 @@ classes_thin = np.unique(t_thin)
 classes_thick = np.unique(t_thick)
 
 #%%
-r = read_signs(root_dir)
+#r = read_signs(root_dir)
 
 nt_thin = np.zeros(len(r))
 
@@ -69,17 +72,18 @@ for c in range(len(classes_thick)):
 
 #count number of each class examples
 #and store the index of the last one
+
+y_all = nt_thin.astype(int)   
+n_classes = len(classes_thin)
     
 nSamples = len(y_all)    
 
-X_all = np.zeros((nSamples,32,32,3),dtype='uint8')
+X_all = np.zeros((nSamples,32,32),dtype='uint8')
 
 for i in range(nSamples):
     X_all[i] = scipy.misc.imresize(images[i],(32,32))
 
 #NB! Change to thick here!!!!
-y_all = nt_thin.astype(int)   
-n_classes = len(classes_thin)
     
 classIndicies = [np.where(y_all == i)[0] for i in range(n_classes)]
 classCounts = [np.size(array) for array in classIndicies]
@@ -122,7 +126,7 @@ for i in range(n_classes):
     ax.append(fig1.add_subplot(gs[row, col]))
     ax[-1].set_title('%s\nN=%d' % (classes_thin[i] ,  classCounts[i]))
     #example
-    img = X_train[classIndicies[i][0]]
+    img = X_all[classIndicies[i][0]]
     #rescale to make dark images visible
     cf = np.int(255/np.max(img)) 
     examples[i] = img*cf;

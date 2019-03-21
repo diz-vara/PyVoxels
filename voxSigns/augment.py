@@ -93,9 +93,9 @@ def augmentImage(img, N:int):
     
     out = [img];
 
-    rangeX = [  0, 20];
-    rangeY = [-35, 35];
-    rangeZ = [-15, 15];
+    rangeX = [  0, 2];
+    rangeY = [-5, 5];
+    rangeZ = [-5, 5];
     rangeS = [0.8, 1.2]
     rangeI = [-0.3, 0.3];
 
@@ -105,7 +105,7 @@ def augmentImage(img, N:int):
         y = np.random.uniform(rangeY[0], rangeY[1]);
         z = np.random.uniform(rangeZ[0], rangeZ[1]);
         scale = np.random.uniform(rangeS[0], rangeS[1]);
-        motion = np.random.uniform();
+        motion = 0; #np.random.uniform();
         if motion > 0.8:
             tmp = cv2.filter2D(img,-1,motion_kern5);
         elif motion > 0.5 :
