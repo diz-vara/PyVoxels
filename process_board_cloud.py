@@ -311,11 +311,11 @@ def calc_image_grid(num, base_dir,back,ax=None):
     return load_draw_2d_board(fname,back,ax)
     
 
-def load_draw_2d_board(name, back,ax=None, shape = None):
+def load_draw_2d_board(name,  mtx, dist, back,ax=None, shape = None):
     img = cv2.imread(name,-1)
-    return draw_2d_board(img, back, ax, shape)
+    return draw_2d_board(img, mtx, dist, back, ax, shape)
     
-def draw_2d_board(img, back=False, ax=None, shape = None):
+def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
     #if (not ax is None):
     #    ax.cla()
 
@@ -386,7 +386,7 @@ def draw_2d_board(img, back=False, ax=None, shape = None):
    
     return cxy_ret
 #%% 
-
+'''
 rot180 = np.matrix(np.diag([-1,-1,1]))
 
 clouds = np.empty((0,3),np.float64)
@@ -433,4 +433,5 @@ imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
 
 res_name = "rot_t_{:04d}.p".format(num)
 pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+'''
     

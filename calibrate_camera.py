@@ -24,7 +24,7 @@ def calcCorners(nx,ny, sqSide = 40):
     return np.array(objCorners, dtype=np.float32)      
 
 #%%
-def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 100, table = None):
+def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, table = None):
     
     #we can skip it here, but for real calibration FAST_CHECK is important!!
     flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
