@@ -22,7 +22,7 @@ def MixNetArr(x, keep_prob, nClasses):
     s = 0.1
     
     #32x32x3 -> 30x30x4
-    w11 = tf.Variable(tf.truncated_normal((1,3,1,4),0,s),'w11')
+    w11 = tf.Variable(tf.truncated_normal((3,3,1,4), 0, 0.05),'w11')
     b11 = tf.Variable(tf.truncated_normal([4],0,0.001),'b11')
 
     c1 = tf.nn.conv2d(x,w11, strides = [1,1,1,1], padding='VALID', name='conv11') + b11
@@ -106,9 +106,10 @@ def MixNetArr(x, keep_prob, nClasses):
     lin1 = tf.nn.tanh(lin1,name='tanh2')
     
     wl2 = tf.Variable(tf.truncated_normal((120,nClasses),0,s/10),'wl2')
-    bl2 = tf.Variable(tf.truncated_normal([nClasses],0,0.001),'bl2')
+    #bl2 = tf.Variable(tf.truncated_normal([nClasses],0,0.001),'bl2')
 
-    lin2 = tf.matmul(lin1,wl2) + bl2
+    lin2 = tf.matmul(lin1,wl2,name='lin2')
+    #lin2 = tf.add(blinl2
     #lin2 = tf.nn.relu(lin2)
    
     return lin2;

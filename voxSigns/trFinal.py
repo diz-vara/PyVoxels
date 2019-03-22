@@ -10,19 +10,19 @@ import tensorflow as tf
 import numpy as np
 
 
-EPOCHS = 60
+EPOCHS = 50
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
 
 
-keep_prob = tf.placeholder(tf.float32)                                           
+keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')                                           
 
 
 #sigs are 32x32x3
-batch_x = tf.placeholder(tf.float32, [None,32,32,1])
+batch_x = tf.placeholder(tf.float32, [None,32,32,1], name = "input_image")
 # 
-batch_y = tf.placeholder(tf.int32, (None))
+batch_y = tf.placeholder(tf.int32, (None), name = 'labels')
 
 
 n_classes = 11 #37 #7 for thic
@@ -31,10 +31,11 @@ ohy = tf.one_hot(batch_y,n_classes);
 fc2 = MixNetArr(batch_x, keep_prob, n_classes)
 
 step = tf.Variable(0, trainable=False)
-starter_learning_rate = 1e-3
+starter_learning_rate = 1e-4
 learning_rate = tf.train.exponential_decay(starter_learning_rate, step, 
-                                          50, 0.999, staircase=True)
+                                          50, 1, staircase=True)
 
+starter_learning_rate = 1e-3
 
 loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=fc2, labels=ohy))
 opt = tf.train.AdamOptimizer(learning_rate)
@@ -82,7 +83,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_file = './nets/arrows-0.ckpt'
+save_file = './nets/arrows-3.ckpt'
 
 with tf.Session() as sess:
 
@@ -134,23 +135,23 @@ with tf.Session() as sess:
     
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-base_dir = '/media/avarfolomeev/storage/Data/Voxels/Signs/'
+base_dir = '/media/avarfolomeev/storage/Data/Voxels/arrows/'
 
-load_net = base_dir + 'nets/thick'
+load_net = base_dir + 'nets/arrows-3.ckpt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
 
 
-model = tf.get_default_graph()
+model2 = tf.get_default_graph()
 
 writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
 writer.close()
 
 
-batch_x = tf.placeholder(tf.float32, [None,32,32,3])
+batch_x = tf.placeholder(tf.float32, [None,32,32,1])
 
-input_image = model.get_tensor_by_name('laceholder_1:0')
+input_image = model.get_tensor_by_name('placeholder_1:0')
 keep_prob = model.get_tensor_by_name('keep_prob:0')
 nn_output = model.get_tensor_by_name('lin2:0')
     
