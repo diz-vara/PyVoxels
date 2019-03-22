@@ -19,7 +19,7 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox_0 as lbl
+import labels_vox as lbl
 import numpy as np
 import helper
 
