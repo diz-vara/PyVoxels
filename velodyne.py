@@ -270,7 +270,9 @@ def capture(port, data_queue):
 
 
 if __name__ == "__main__":
-    points21_f, frames21_f=read_velo_file('E:\\Data\\Voxels\\2018_03_08\\L21\\velodyne_packets\\')
+    #points21_f, frames21_f=read_velo_file('E:\\Data\\Voxels\\2018_03_08\\L21\\velodyne_packets\\')
+    pointsR1_11 = read_velo_file('F://Data//Voxels/20180525/ride01-11/velodyne_packets/')
+    
 
 """    
     if len(sys.argv) < 3:

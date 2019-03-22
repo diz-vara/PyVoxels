@@ -244,7 +244,7 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
         #ax_3d.set_zlim(-1,1)
         #ax.axis('equal')
         for i in range(len(sorted_grid)):
-            ax3.text(sorted_grid[i,0],sorted_grid[i,1],sorted_grid[i,2], str(i+1)  )
+            ax.text(sorted_grid[i,0],sorted_grid[i,1],sorted_grid[i,2], str(i+1)  )
 
 
     #rotated_cloud = cloud * box_rot.transpose
@@ -320,10 +320,19 @@ def draw_2d_board(img, back=False, ax=None, shape = None):
     #    ax.cla()
 
     #uimg=cv2.undistort(img,mtx,dist)
+    
 
     if (not shape is None):
-        r,corn_xy = cv2.findChessboardCorners(img,shape)
+        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
+        ret,corn_xy = cv2.findChessboardCorners(grey,shape, flagCorners)
+        if (ret):
+            term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
+            cv2.cornerSubPix(grey,corn_xy,shape, (-1,-1),term)
+        else:
+            return
         cxy=np.array(corn_xy[:,0,:]).astype(np.float64)
+            
     else:
         shape = (11,11) #LA recordings with manual corners
         corners = ( (img[:,:,0]<=0) & (img[:,:,1]<=0) & (img[:,:,2]> 254) )
@@ -377,24 +386,33 @@ def draw_2d_board(img, back=False, ax=None, shape = None):
    
     return cxy_ret
 #%% 
-"""
+
 rot180 = np.matrix(np.diag([-1,-1,1]))
 
 clouds = np.empty((0,3),np.float64)
 boards = np.empty((0,2),np.float64)
 
-base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam2_again/'
+base_dir = 'E:\Data\Voxels\201901-LA\20190119_calibration\cam2\s'
 #cloud_list = [1,2,3,4,5,7,8,9,10,11]
 cloud_list = [1,4,5,8,10,11]
 
+
+if (not 'ax3' in globals()):
+    f3 = plt.figure(3)
+    ax3=f3.add_subplot(111,projection='3d')
+    
+if (not 'ax1' in globals()):
+    f1 = plt.figure(1)
+    ax1=f1.gca()
+    
 
 ax1.cla()
 ax3.cla()
 
 
-base_dir = 'e:/data/Voxels/201809_usa/test15_6-camera_calibration/cam_5/png'
+base_dir = 'E:/Data/Voxels/201901-LA/20190119_calibration/cam2'
 
-cloud_list = [0,8,19]
+cloud_list = [0,1,2,3,4,5]
 
 for cl in cloud_list:
     _cloud,_grid = calc_cloud_grid(cl,base_dir,ax3, True);
@@ -415,5 +433,4 @@ imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
 
 res_name = "rot_t_{:04d}.p".format(num)
 pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
-
-"""    
+    

@@ -26,7 +26,9 @@ import sys
 
 
 #%%
-def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,train_op, cross_entropy_loss, input_image,
+def train_nn(sess, epochs, batch_size, 
+             dataset_file, image_shape, num_classes,
+             train_op, cross_entropy_loss, input_image,
              corr_label, keep_prob, learning_rate, base = 0):
     """
     Train neural network and print out the loss during training.
@@ -42,7 +44,7 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
     :param learning_rate: TF Placeholder for learning rate
     """
     
-    save_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp';
+    save_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-3';
     min_loss_file = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/min_loss.txt';
     lr_file = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/lr.txt';
     
@@ -51,17 +53,19 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
 
     #lr = sess.run(learning_rate)
     merged = tf.summary.merge_all()
-    lr = 1.1e-4
-    min_loss = 0.04
+    lr = 1.3e-4
+    min_loss = 0.1
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
         sys.stdout.flush()
+        
+        get_train_batches_fn = build_batch_fn(dataset_file, 'train',
+                                              image_shape, num_classes);
+        
+        get_val_batches_fn = build_batch_fn(dataset_file, 'val',
+                                              image_shape, num_classes);
         bnum = 0
-        # read updated min_loss from the file
-        try:
-            min_loss = float(open(min_loss_file).read())
-        except:
-            0;    
+        #read updated lr from the file
         try:
             lr = float(open(lr_file).read())
         except:
@@ -76,13 +80,13 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
             summary, _, train_loss = sess.run([merged, train_op, cross_entropy_loss],
                                      feed_dict={input_image:image, 
                                                 corr_label:label,
-                                     keep_prob:0.5, learning_rate:lr})
+                                                keep_prob:0.5, learning_rate:lr})
             cum_loss += train_loss
             sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + '   \r')
             sys.stdout.flush()      
             bnum = bnum + 1  
         train_loss = cum_loss / bnum
-        sys.stdout.write("Train loss: " + str(train_loss) + '\r\n')
+        sys.stdout.write("\r\nTrain loss: " + str(train_loss) + '\r\n')
         sys.stdout.flush()      
         bnum = 0
         
@@ -93,7 +97,7 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
             summary, val_loss = sess.run([merged, cross_entropy_loss],
                                      feed_dict={input_image:image, 
                                                 corr_label:label,
-                                     keep_prob:1, learning_rate:lr})
+                                                keep_prob:1, learning_rate:lr})
             sys.stdout.write('\rVal ' + str(bnum) + '  ' + str(val_loss) + '   \r')
             sys.stdout.flush()      
             cum_loss += val_loss
@@ -101,9 +105,16 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
                
         val_loss = cum_loss / bnum
         
-        writer.add_summary(summary, epoch)                          
-        print(" Loss = {:g} {:g}".format(train_loss, val_loss))     
-        print()                        
+        writer.add_summary(summary, epoch)
+        print("\r\nLoss = {:g} {:g}".format(train_loss, val_loss))     
+        print()                
+
+        # read updated min_loss from the file
+        try:
+            min_loss = float(open(min_loss_file).read())
+        except:
+            0;    
+        
         if (val_loss < min_loss):
             print("saving at step {:d}".format(epoch+base))     
             min_loss = val_loss;
@@ -117,21 +128,32 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn,
            
             
 #%%
+def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
+    try:
+        _base_dir = open(_dataset_descriptor,'rt').readline().rstrip('\n')
+    except:    
+        _base_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g'
+    
+    
+    _fn = helper.gen_batch_function(_base_dir,
+                                   _split,_image_shape, _num_classes)
+    return (_fn)
+
+            
+            
 #%%
 
 #def retrain():
     
 tf.reset_default_graph()
 
-data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
-runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
+dataset_file = '/media/avarfolomeev/storage/Data/Segmentation/dataset.txt'
 timestamp = time.strftime("%Y%m%d_%H%M%S");
 
-export_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/exports/' + timestamp;
 
 labels = lbl.labels_vox
 num_classes = len(labels)
-image_shape=(576,1024)
+image_shape=(704,832)
 
 epochs = 5000
 batch_size = 4
@@ -148,7 +170,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-6058'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-3-9259'  #lp-7004'
 
 min_loss_name = 'min_loss.txt'
 
@@ -189,12 +211,6 @@ tf.summary.scalar('loss', loss)
 tf.summary.scalar('learning_rate', learning_rate)
 
 
-
-get_train_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
-                                           'train',image_shape, num_classes)
-get_val_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
-                                           'val',image_shape, num_classes)
-
 train_op=model.get_collection('train_op')[0]
 
 train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
@@ -202,11 +218,13 @@ train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
 #train_op = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(loss, var_list = train_vars)
 
 
-writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/logs-lp')
+writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/logs-9')
 
 print('training')
-train_nn(sess, epochs, batch_size, get_train_batches_fn, get_val_batches_fn, train_op,
-         loss, input_image, correct_label, keep_prob, learning_rate, 6100) 
+train_nn(sess, epochs, batch_size, 
+         dataset_file, image_shape, num_classes,
+         train_op,
+         loss, input_image, correct_label, keep_prob, learning_rate, 9300) 
 
 
 
