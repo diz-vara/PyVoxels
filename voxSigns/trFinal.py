@@ -10,7 +10,7 @@ import tensorflow as tf
 import numpy as np
 
 
-EPOCHS = 50
+EPOCHS = 100
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
@@ -83,7 +83,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_file = './nets/arrows-3.ckpt'
+save_net = './nets/arrows-4.ckpt'
 
 with tf.Session() as sess:
 
@@ -97,8 +97,9 @@ with tf.Session() as sess:
     idx = np.arange(_nSamples)
     _batchSize = BATCH_SIZE
         
-        
-    for i in range(EPOCHS):
+    val_acc_max = 0.9    
+    
+    for epoch in range(EPOCHS):
         np.random.shuffle(idx)
         for _batchStart in range(0,_nSamples,_batchSize):
             if (_batchStart+_batchSize >= _nSamples):
@@ -114,7 +115,7 @@ with tf.Session() as sess:
     
         trn_loss, trn_acc = eval_data(Xgn_t, Yg_t)
         val_loss, val_acc = eval_data(X_val, y_val)
-        print("EPOCH {} ...".format(i+1), 
+        print("EPOCH {} ...".format(epoch+1), 
               "Learning rate", "%.9f" % sess.run(learning_rate))
         print("Validation loss = {:.3f}".format(val_loss), 
               "Validation accuracy = {:.3f}".format(val_acc))
@@ -122,6 +123,15 @@ with tf.Session() as sess:
               "Train loss = {:.5f}".format(trn_loss), 
               "Train acc  = {:.5f}".format(trn_acc) )
         print()
+        
+        if (val_acc > val_acc_max ):
+            val_acc_max = val_acc;
+            saver.save(sess, save_net, global_step=epoch)
+                #save empty file with loss value           
+            fn =  save_net + '-' + str(epoch) + '.' + str(val_acc)
+            f = open(fn,"wb")
+            f.close()
+
     
     saver.save(sess,save_file)    
     
@@ -137,7 +147,7 @@ sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 base_dir = '/media/avarfolomeev/storage/Data/Voxels/arrows/'
 
-load_net = base_dir + 'nets/arrows-3.ckpt'
+load_net = base_dir + 'nets/arrows-4.ckpt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
