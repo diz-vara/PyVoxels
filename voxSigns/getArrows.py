@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import os
 import sys
-
+import glob
 
 # Read in the saved camera matrix and distortion coefficients
 # These are the arrays you calculated using cv2.calibrateCamera()
@@ -45,8 +45,16 @@ Minv = cv2.getPerspectiveTransform(dst*50, src)
 #plt.imshow(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
 
 
-cascadeArrows = cv2.CascadeClassifier('/media/undead/Data/Voxels/Arrows/cArr_24_2_40_s4.xml')
 cam_1_dict = pickle.load(open('/media/undead/Data/Voxels/sony_cam_1_dict.p','rb'))
+cascadeArrows = cv2.CascadeClassifier('/media/undead/Data/Voxels/Arrows/cArr_24_2_40_s4.xml')
+
+arrowsNet = read_frozen('/media/undead/Data/Voxels/Arrows/arrows-4.frozen_model.pb')
+
+inp = arrowsNet.get_tensor_by_name('input_image:0')
+keep_prob = arrowsNet.get_tensor_by_name('keep_prob:0')
+out = arrowsNet.get_tensor_by_name('lin2:0')
+
+
 
 #%%
 def getArrows(base_dir, in_dir, out_dir):
@@ -61,52 +69,61 @@ def getArrows(base_dir, in_dir, out_dir):
 
     print('Loading images from ' + in_dir + " writing arrows to " + out_dir)
     
-    im_files = sorted(os.listdir(in_dir))[660:700]
+    im_files = sorted(glob.glob(in_dir+'/*.*g')) #[660:700]
     cnt = 0
     end_string = ' from ' + str(len(im_files))
     
+    with tf.Session(graph=arrowsNet) as sess:
     
+        for _file in im_files:
+            print(str(cnt) + end_string)
+            cnt = cnt+1
+            #if (cnt < 2875):
+            #    continue;
+            img_in = cv2.imread(os.path.join(in_dir, _file),0) #GRAY only!!!
     
-    for _file in im_files:
-        print(str(cnt) + end_string)
-        cnt = cnt+1
-        #if (cnt < 2875):
-        #    continue;
-        img_in = cv2.imread(os.path.join(in_dir, _file),0) #GRAY only!!!
-
-        warp_shape = (img_in.shape[1], img_in.shape[0])
-        #undistort!!!
-        try:
-        #if (True):
-            und = cv2.undistort(img_in, cam_1_dict['mtx'], cam_1_dict['dist'])
-            warped = cv2.warpPerspective(und, M, warp_shape, 
-                                                     flags=cv2.INTER_LINEAR)
-            
-            
-            detected = cascadeArrows.detectMultiScale(warped,
-                                                      1.1,
-                                                      minNeighbors=1,
-                                                      minSize=(50,50),
-                                                      maxSize=(150,150))
-            
-            if (len(detected) > 0):
-                print ( "Detected ", len(detected), " arrows")
-                mask = np.zeros(img_in.shape, dtype = np.uint8)
-                for (x,y,w,h) in detected:
-                    arr_img = warped[y:y+h, x:x+w]
+            warp_shape = (img_in.shape[1], img_in.shape[0])
+            #undistort!!!
+            try:
+            #if (True):
+                und = cv2.undistort(img_in, cam_1_dict['mtx'], cam_1_dict['dist'])
+                warped = cv2.warpPerspective(und, M, warp_shape, 
+                                                         flags=cv2.INTER_LINEAR)
+                
+                
+                detected = cascadeArrows.detectMultiScale(warped,
+                                                          1.1,
+                                                          minNeighbors=1,
+                                                          minSize=(50,50),
+                                                          maxSize=(150,150))
+                
+                if (len(detected) > 0):
+                    print ( "Detected ", len(detected), " arrows")
+                    mask = np.zeros(img_in.shape, dtype = np.uint8)
                     
-                    #classify
-                    mask[y:y+h, x:x+w] = 177
-                
-                
-                
-                mask = cv2.warpPerspective(mask, Minv, warp_shape, 
-                                           flags=cv2.INTER_LINEAR)
- 
-                cv2.imwrite(os.path.join(out_dir, _file),mask)
-        except:
-            print("Error: ", sys.exc_info()[0])
-            pass
+                    for (x,y,w,h) in detected:
+                        arr_img = warped[y:y+h, x:x+w]
+                        arr_img = cv2.resize(arr_img,(32,32))
+                        imf  = np.float32(arr_img)
+                        imf = (imf-128.)/128.
+                        imf = np.expand_dims(imf,-1)
+
+                        #classify
+                        o = sess.run([out], feed_dict={inp:[imf], keep_prob:1.0})                        
+                        arrow_type = np.argmax(o[0],1)
+                        print('type ', arrow_type)
+                        if (arrow_type > 0):
+                            mask[y:y+h, x:x+w] = arrow_type.astype(np.uint8);
+                    
+                    
+                    if (mask.any()):
+                        mask = cv2.warpPerspective(mask, Minv, warp_shape, 
+                                                   flags=cv2.INTER_LINEAR)
+         
+                        cv2.imwrite(os.path.join(out_dir, _file.replace('.jpg','.png')),mask)
+            except:
+                print("Error: ", sys.exc_info()[0])
+                pass
 
 
 #%%
