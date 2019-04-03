@@ -13,6 +13,9 @@ import matplotlib.image as mpimg
 import os
 import sys
 import glob
+import tensorflow as tf
+
+from read_frozen import read_frozen
 
 # Read in the saved camera matrix and distortion coefficients
 # These are the arrays you calculated using cv2.calibrateCamera()
@@ -46,7 +49,7 @@ Minv = cv2.getPerspectiveTransform(dst*50, src)
 
 
 cam_1_dict = pickle.load(open('/media/undead/Data/Voxels/sony_cam_1_dict.p','rb'))
-cascadeArrows = cv2.CascadeClassifier('/media/undead/Data/Voxels/Arrows/cArr_24_1_50_s8.xml')
+cascadeArrows = cv2.CascadeClassifier('/media/undead/Data/Voxels/Arrows/cArr_24_1_50_s11.xml')
 
 arrowsNet = read_frozen('/media/undead/Data/Voxels/Arrows/arrows-4.frozen_model.pb')
 
@@ -60,6 +63,10 @@ arrow_types = ["BG", "LU", "LUR", "RU", "U", "dL", "dR", "diagL", "diagR", "uL",
 ROAD_MARKING = 7
 
 def getArrows(base_dir, out_dir = "", start = 0, end = -1):
+    if (base_dir is None):
+        print('You must select base_dir')
+        return
+    
     in_dir = os.path.join(base_dir, 'data')
     mask_dir = os.path.join(base_dir, 'Xroad')
 
@@ -67,6 +74,8 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
 
     print('Loading images from ' + in_dir)
     
+    if (out_dir is None):
+        out_dir = ""
     if (len (out_dir) > 0):
         try:
             os.makedirs(out_dir)
@@ -83,13 +92,18 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
     
     im_files = sorted(glob.glob(in_dir+'/*.*g'))
     
-    if (end < 0):
+    if (start is None):
+        start = 0;
+        
+    if (end is None or end < 0):
         end = len(im_files)
     im_files = im_files[start:end+1]
     cnt = 0
     end_string = ' from ' + str(len(im_files))
+    config = tf.ConfigProto()
+    #config.gpu_options.visible_device_list = '1'
 
-    with tf.Session(graph=arrowsNet) as sess:
+    with tf.Session(graph=arrowsNet, config=config) as sess:
     
         for _file in im_files:
             print(str(cnt) + end_string)
@@ -109,10 +123,10 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
                 
                 
                 detected = cascadeArrows.detectMultiScale(warped,
-                                                          1.15,
-                                                          minNeighbors=3,
+                                                          1.1,
+                                                          minNeighbors=2,
                                                           minSize=(50,50),
-                                                          maxSize=(200,200))
+                                                          maxSize=(160,160))
                 
                 if (len(detected) > 0):
                     print ( "Detected ", len(detected), " arrows")
@@ -144,10 +158,16 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
                         mask = cv2.warpPerspective(mask, Minv, warp_shape, 
                                                    flags=cv2.INTER_LINEAR)
                         mask_path = os.path.join(mask_dir, _file.replace('.jpg','.png'));
+                        old_mask_path = os.path.join(mask_dir, _file.replace('.jpg','_.png'));
                                                  
                         old_mask = cv2.imread(mask_path,0);
-                        old_mask[old_mask==ROAD_MARKING] = mask[old_mask==ROAD_MARKING]
+                        #restore original ROAD_MARKING
+                        old_mask[ (old_mask >= 100) & (old_mask < 120)] = ROAD_MARKING
+                        
+                        idx = np.where( (old_mask==ROAD_MARKING) & (mask > 100) )
+                        old_mask[idx] = mask[idx]
                         #print('saving ', mask_path)
+                        os.rename(mask_path, old_mask_path)
                         cv2.imwrite(mask_path,old_mask)
             except:
                 print("Error: ", sys.exc_info()[0])
@@ -209,5 +229,11 @@ def unpersp(base_dir, in_dir, out_dir, _flag):
             pass
 
 
-
+#%%
+if __name__ == "__main__":
+    nArg = len(sys.argv)
+    args = [None, None, None, None]
+    for i in range (1, nArg):
+        args[i-1] = sys.argv[i]
+    getArrows(args[0], args[1], args[2], args[3])            
 
