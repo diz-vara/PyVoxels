@@ -110,28 +110,42 @@ get_ipython().magic('matplotlib inline')
 import matplotlib.gridspec as gridspec
 
 #display example of each class and show number of samples
-cols = 6
-figsize = (10, 20)
+cols = 5
+figsize = (10, 7)
 
 gs = gridspec.GridSpec(n_classes // cols + 1, cols)
 
 fig1 = plt.figure(num=1, figsize=figsize)
 ax = []
 
+
+classes_full = [' not an arrow',
+                'ahead or left',
+                'ahead, left or right',
+                'ahead or right',
+                'ahead',
+                'turn right ud',
+                'turn left ud',
+                'change left',
+                'change right',
+                'turn left',
+                'turn right'
+                ]
+
 exShape = list(X_train.shape);
 exShape[0] = n_classes;
 examples = np.empty(exShape, dtype=np.uint8)
-for i in range(n_classes):
+for i in range(n_classes-1):
     row = (i // cols)
     col = i % cols
     ax.append(fig1.add_subplot(gs[row, col]))
-    ax[-1].set_title('%s\nN=%d' % (classes_thin[i] ,  classCounts[i]))
+    ax[-1].set_title('%s\n(%d) N=%d' % (classes_full[i+1] ,i+101,   classCounts[i+1]))
     #example
-    img = X_all[classIndicies[i][0]]
+    img = X_all[classIndicies[i+1][0]]
     #rescale to make dark images visible
     cf = np.int(255/np.max(img)) 
     examples[i] = img*cf;
-    ax[-1].imshow(img*cf)
+    ax[-1].imshow(img*cf, cmap='gray')
     ax[-1].axis('off')
     
 #%%
