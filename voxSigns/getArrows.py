@@ -82,7 +82,7 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
         except:
             pass
 
-        for sub_dir in arrow_types[1:]:
+        for sub_dir in arrow_types:
             try:
                 os.makedirs(os.path.join(out_dir,sub_dir))
             except:
@@ -102,6 +102,7 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
     end_string = ' from ' + str(len(im_files))
     config = tf.ConfigProto()
     #config.gpu_options.visible_device_list = '1'
+    warp_shape_0 = (0,0)
 
     with tf.Session(graph=arrowsNet, config=config) as sess:
     
@@ -109,28 +110,41 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
             print(str(cnt) + end_string)
             cnt = cnt+1
 
-            img_in = cv2.imread(os.path.join(in_dir, _file),0) #GRAY only!!!
+            img_in = cv2.imread(os.path.join(in_dir, _file),-1) #GRAY only!!!
+            grey = cv2.cvtColor(img_in, cv2.COLOR_BGR2GRAY)
     
             warp_shape = (img_in.shape[1], img_in.shape[0])
+            
+            if (warp_shape_0 != warp_shape):
+                umap = cv2.initUndistortRectifyMap(cam_1_dict['mtx'],cam_1_dict['dist'],
+                                                   None,cam_1_dict['mtx'],
+                                                   warp_shape, cv2.CV_32FC1)
+                warp_shape_0 = warp_shape
+                
+
+            o_file = _file.replace('.jpg', '_.jpg')
 
             _file = os.path.split(_file)[-1]
       
             #if (True):
             try:
-                und = cv2.undistort(img_in, cam_1_dict['mtx'], cam_1_dict['dist'])
+                
+
+                und = cv2.undistort(grey, cam_1_dict['mtx'], cam_1_dict['dist'])
                 warped = cv2.warpPerspective(und, M, warp_shape, 
                                                          flags=cv2.INTER_LINEAR)
                 
                 
                 detected = cascadeArrows.detectMultiScale(warped,
-                                                          1.1,
-                                                          minNeighbors=2,
+                                                          1.15,
+                                                          minNeighbors=1,
                                                           minSize=(50,50),
                                                           maxSize=(160,160))
                 
                 if (len(detected) > 0):
                     print ( "Detected ", len(detected), " arrows")
-                    mask = np.zeros(img_in.shape, dtype = np.uint8)
+                    mask = np.zeros(img_in.shape[:2], dtype = np.uint8)
+                    rects = np.zeros(img_in.shape, dtype = np.uint8)
                     r_cnt = 0
                     for (x,y,w,h) in detected:
                         arr_img = warped[y:y+h, x:x+w]
@@ -142,17 +156,31 @@ def getArrows(base_dir, out_dir = "", start = 0, end = -1):
                         o = sess.run([out], feed_dict={inp:[imf], keep_prob:1.0})                        
                         arrow_type = np.argmax(o[0],1)[0]
                         print('type ', arrow_type)
+                        
+                        r_color = (0,0, 55);
+
                         if (arrow_type > 0):
+                            r_color = (0,0,255);
                             out_type = arrow_type + 100; #separate type range
                             mask[y:y+h, x:x+w] = out_type.astype(np.uint8);
-                            if (len(out_dir) > 0):
-                                type_str = arrow_types[arrow_type]
-                                out_str = '-%d.jpg' % (r_cnt)
-                                out_file = os.path.join(out_dir, type_str,
-                                                        _file.replace('.jpg',out_str))
-                                cv2.imwrite(out_file,arr_img);
+
+                        if (len(out_dir) > 0):
+                            type_str = arrow_types[arrow_type]
+                            out_str = '-%d.jpg' % (r_cnt)
+                            out_file = os.path.join(out_dir, type_str,
+                                                    _file.replace('.jpg',out_str))
+                            cv2.imwrite(out_file,arr_img);
                                                             
                         r_cnt = r_cnt + 1
+
+                        cv2.rectangle(rects, (x,y), (x+w,y+h),r_color,5)  
+                    
+                    rects = cv2.warpPerspective(rects, Minv, warp_shape, 
+                                               flags=cv2.INTER_NEAREST)
+                    img_in = img_in | rects;
+                    cv2.imwrite(o_file,img_in);
+                    print(o_file);
+
                     
                     if (mask.any()):
                         mask = cv2.warpPerspective(mask, Minv, warp_shape, 
