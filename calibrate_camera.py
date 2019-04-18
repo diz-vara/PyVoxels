@@ -104,6 +104,7 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, tab
     ret, mtx, dist, rv, tv = cv2.calibrateCamera(objPoints, imgPoints, shape, 
                                                  mtx, distCoeffs=dcf, 
                                                  flags = flagCalib)
+    print('ret=',ret)
     return ret, mtx, dist
 
 #%%    

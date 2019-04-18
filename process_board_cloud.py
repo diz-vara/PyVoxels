@@ -204,9 +204,11 @@ def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False, _grid = 
     return calc_cloud_grid_f(fname, ax, overlay, London, _grid)
     
 def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False, 
-                      _grid = (0.0597, 11, 0.211),delimiter = ','):
+                      _grid = (0.0597, 11, 0.211),delimiter = ',', rotate=None):
     cloud = read_cloud_file(fname, delimiter)[0]
-    #cloud = cloud * rot180
+
+    if (rotate is not None):
+        cloud = cloud * rotate
     _avg, _rot = get_cloud_rotation(cloud)
     
     flat = rotate_cloud(cloud,_avg,_rot)
@@ -215,8 +217,8 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
     
     p0,box_rot = get_box_rotation(box)
     
-    if (London):
-        grid =(0.04, 11, 0.14)# - LONDON
+    #if (London):
+    #    grid =(0.04, 11, 0.14)# - LONDON
 
     grid = build_grid(_grid[0], _grid[1], _grid[2])
     
@@ -229,7 +231,8 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
     
     sorted_grid = sort_grid(rotated_grid,_grid[1])
 
-    
+    if (rotate is not None):
+        sorted_grid = sorted_grid * rotate.transpose()
     
     if (ax):
         scatt3d(ax,cloud,not overlay,'#1f1f1f','o',3)
@@ -375,7 +378,7 @@ def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
     
         
     if (back):    
-        final_order = final_order.reshape((11,11)).transpose().reshape(-1)    
+        final_order = final_order.reshape(shape).transpose().reshape(-1)    
     cxy_ret = cxy[final_order.astype(np.int32)]
     
     if (not ax is None):
