@@ -46,7 +46,7 @@ class Cam0Params(CamParams):
         )
 
         origin = (src[3][0] + 90, src[3][1] + 80)
-        ratio = 0.8333
+        ratio = 1.2
         width = 250
         height = width / ratio
 
@@ -98,7 +98,7 @@ class Cam2Params(CamParams):
         )
 
         origin = (220, src[2][1] + 20)
-        ratio = 0.8333
+        ratio = 1.2 #0.8333
         width = 250
         height = width / ratio
 
@@ -310,7 +310,7 @@ def do_unpersp(camera_params, img_path, out_path, flags):
         img_in = cv2.imread(img_path, -1)
         undistored = cv2.undistort(img_in, camera_params.calibration['mtx'], camera_params.calibration['dist'])
         height, width = img_in.shape[:2]
-        warped = cv2.warpPerspective(undistored, camera_params.perspectiveTransform, (height, width), flags=flags)
+        warped = cv2.warpPerspective(undistored, camera_params.perspectiveTransform, (width, height), flags=flags)
         cv2.imwrite(out_path, warped)
     except Exception as e:
         print('Failed to process {}: {}'.format(img_path, e))
@@ -385,15 +385,19 @@ if __name__ == "__main__":
     ### print('Output directory:', args.output_dir)
 
     # camera_params = CAMERA_PARAMS[args.camera_index](args.calibration)
-    camera_params = CAMERA_PARAMS[0]('C:\\src\\GIT\\PyVoxels\\sony_cam_0_dict.p')
-    # camera_params = CAMERA_PARAMS[1]('C:\\src\\GIT\\PyVoxels\\sony_cam_1_dict.p')
-    # camera_params = CAMERA_PARAMS[2]('C:\\src\\GIT\\PyVoxels\\sony_cam_2_dict.p')
+
+    #parameters_dir = 'C:\\src\\GIT\\PyVoxels\\'
+    parameters_dir = '/media/nvidia/Data/Voxels/Arrows/'
+
+    camera_params0 = CAMERA_PARAMS[0](parameters_dir + 'sony_cam_0_dict.p')
+    camera_params1 = CAMERA_PARAMS[1](parameters_dir + 'sony_cam_1_dict.p')
+    camera_params2 = CAMERA_PARAMS[2](parameters_dir + 'sony_cam_2_dict.p')
 
     # cascadeArrows = cv2.CascadeClassifier(args.cascade)
-    cascadeArrows = cv2.CascadeClassifier('C:\\src\\GIT\\PyVoxels\\cArr_24_1_50_s11.xml')
+    cascadeArrows = cv2.CascadeClassifier(parameters_dir + 'cArr_24_1_50_s11.xml')
 
     # arrowsNet = read_frozen(args.arrows_net)
-    arrowsNet = read_frozen('C:\\src\\GIT\\PyVoxels\\arrows-5.frozen_model.pb')
+    arrowsNet = read_frozen(parameters_dir +  'arrows-5.frozen_model.pb')
 
     inp = arrowsNet.get_tensor_by_name('input_image:0')
     keep_prob = arrowsNet.get_tensor_by_name('keep_prob:0')
