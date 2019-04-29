@@ -8,6 +8,7 @@ import concurrent
 import glob
 import os
 import pickle
+import threading
 import time
 from collections import namedtuple
 from concurrent.futures.process import ProcessPoolExecutor
@@ -19,12 +20,13 @@ import tensorflow as tf
 
 from read_frozen import read_frozen
 
-
 # Read in the saved camera matrix and distortion coefficients
 # These are the arrays you calculated using cv2.calibrateCamera()
 # dist_pickle = pickle.load( open( "mtx_dist.p", "rb" ) )
 # mtx = dist_pickle["mtx"]
 # dist = dist_pickle["dist"]
+
+thread_local_data = threading.local()
 
 
 class CamParams:
@@ -121,7 +123,7 @@ class Cam2Params(CamParams):
 # plt.imshow(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
 
 GetArrowsParams = namedtuple('GetArrowsParams',
-                             ('cascadeArrows', 'arrowsNet', 'inp', 'keep_prob', 'out', 'arrow_types'))
+                             ('cascadeClassifierPath', 'arrowsNet', 'inp', 'keep_prob', 'out', 'arrow_types'))
 
 GetArrowsResult = namedtuple('GetArrowsResult',
                              ('detected_count, non_zero_count'))
@@ -130,7 +132,7 @@ GetArrowsResult = namedtuple('GetArrowsResult',
 ROAD_MARKING = 7
 
 
-def doGetArrows(_file, out_dir, camera_params, params, sess):
+def doGetArrows(_file, out_dir, camera_params: CamParams, params: GetArrowsParams, sess: tf.Session):
     img_in = cv2.imread(_file, -1)  # GRAY only!!!
     grey = cv2.cvtColor(img_in, cv2.COLOR_BGR2GRAY)
     warp_shape = (img_in.shape[1], img_in.shape[0])
@@ -147,6 +149,13 @@ def doGetArrows(_file, out_dir, camera_params, params, sess):
     #### o_file = _file.replace('.jpg', '_.jpg')
     _file = os.path.split(_file)[-1]
     # if (True):
+
+    try:
+        cascadeArrows = thread_local_data.cascadeArrows
+    except AttributeError:
+        cascadeArrows = cv2.CascadeClassifier(params.cascadeClassifierPath)
+        thread_local_data.cascadeArrows = cascadeArrows
+
     try:
         #### und = cv2.undistort(grey, camera_params.calibration['mtx'], camera_params.calibration['dist'])
         #### warped = cv2.warpPerspective(und,
@@ -155,11 +164,11 @@ def doGetArrows(_file, out_dir, camera_params, params, sess):
         ####                              flags=cv2.INTER_LINEAR)
         warped = grey
 
-        detected = params.cascadeArrows.detectMultiScale(warped,
-                                                         1.15,
-                                                         minNeighbors=1,
-                                                         minSize=(30, 30),
-                                                         maxSize=(400, 400))
+        detected = cascadeArrows.detectMultiScale(warped,
+                                                  1.15,
+                                                  minNeighbors=1,
+                                                  minSize=(30, 30),
+                                                  maxSize=(400, 400))
 
         arrow_count = 0
 
@@ -393,8 +402,8 @@ if __name__ == "__main__":
     camera_params1 = CAMERA_PARAMS[1](parameters_dir + 'sony_cam_1_dict.p')
     camera_params2 = CAMERA_PARAMS[2](parameters_dir + 'sony_cam_2_dict.p')
 
-    # cascadeArrows = cv2.CascadeClassifier(args.cascade)
-    cascadeArrows = cv2.CascadeClassifier(parameters_dir + 'cArr_24_1_50_s11.xml')
+    # cascadeClassifierPath = cv2.CascadeClassifier(args.cascade)
+    cascadeClassifierPath = parameters_dir + 'cArr_24_1_50_s11.xml'
 
     # arrowsNet = read_frozen(args.arrows_net)
     arrowsNet = read_frozen(parameters_dir +  'arrows-5.frozen_model.pb')
@@ -404,7 +413,7 @@ if __name__ == "__main__":
     out = arrowsNet.get_tensor_by_name('lin2:0')
     arrow_types = ["BG", "LU", "LUR", "RU", "U", "dL", "dR", "diagL", "diagR", "uL", "uR"]
 
-    get_arrows_params = GetArrowsParams(cascadeArrows=cascadeArrows,
+    get_arrows_params = GetArrowsParams(cascadeClassifierPath=cascadeClassifierPath,
                                         arrowsNet=arrowsNet,
                                         inp=inp,
                                         keep_prob=keep_prob,
