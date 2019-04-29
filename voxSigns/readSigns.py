@@ -23,7 +23,7 @@ def read_signs(root_dir):
     units = []
     for f in filenames:
         
-        img = scipy.misc.imread(f)
+        img = scipy.misc.imread(f, mode = 'RGB')
         (w,h,c) = img.shape
 
         img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
@@ -99,7 +99,7 @@ y_train = y_all[t]
 y_val = y_all[v]
 
 
-(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,5000)
+(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,8000)
 
 
 

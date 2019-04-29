@@ -10,7 +10,7 @@ import tensorflow as tf
 import numpy as np
 
 
-EPOCHS = 100
+EPOCHS = 200
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
@@ -83,7 +83,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = './nets/arrows-4.ckpt'
+save_net = './nets/arrows-5.ckpt'
 
 with tf.Session() as sess:
 
