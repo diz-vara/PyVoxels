@@ -106,14 +106,15 @@ def augmentImage(img, N:int):
         z = np.random.uniform(rangeZ[0], rangeZ[1]);
         scale = np.random.uniform(rangeS[0], rangeS[1]);
         motion = 0; #np.random.uniform();
-        if motion > 0.8:
-            tmp = cv2.filter2D(img,-1,motion_kern5);
-        elif motion > 0.5 :
-            tmp = cv2.filter2D(img,-1,motion_kern3);
-        else:
-            tmp = img;
+
+
         intens = np.random.uniform(rangeI[0], rangeI[1]);
+ 
+        tmp = img
         tmp = np.clip(tmp+intens,-0.5,0.5);
+        if (np.random.uniform() > 0.5):
+            tmp = cv2.flip(tmp,-1)
+
         out.append(transformImg(tmp,x,y,z,scale));
     return out;
 

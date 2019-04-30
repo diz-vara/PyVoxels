@@ -81,8 +81,8 @@ def MixNetText(x, keep_prob, nClasses):
     c3 = tf.nn.relu(c3,name='relu31')
     
     #3x4x32 -> 1x2x32
-    w32 = tf.Variable(tf.truncated_normal((3,3,32,32),0,s),'w32')
-    b32 = tf.Variable(tf.truncated_normal([32],0,0.01),'b32')
+    w32 = tf.Variable(tf.truncated_normal((3,3,32,64),0,s),'w32')
+    b32 = tf.Variable(tf.truncated_normal([64],0,0.01),'b32')
 
     c3 = tf.nn.conv2d(c3,w32, strides = [1,1,1,1], padding='VALID',name='conv32') + b32
     #c3 = tf.nn.relu(c3)

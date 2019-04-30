@@ -103,7 +103,7 @@ y_train = y_all[t]
 y_val = y_all[v]
 
 
-(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,8000)
+(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,10000)
 
 
 

@@ -85,7 +85,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = './nets/text-0.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-1.ckpt'
 
 with tf.Session() as sess:
 
@@ -149,7 +149,7 @@ sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 base_dir = '/media/avarfolomeev/storage/Data/Voxels/text/'
 
-load_net = base_dir + 'nets/text-0.ckpt'
+load_net = base_dir + 'nets/text-1.ckpt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
