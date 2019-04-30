@@ -72,7 +72,7 @@ def getPerspMatrix(x, y, z, size):
 
 
 def transformImg(img, x=0, y=0, z=0, scale = 1):
-    size = img.shape[:2]
+    size = img.shape[2::-1]
     
     M = getPerspMatrix(x, y, z, size)
     if scale != 1:
@@ -144,6 +144,7 @@ def augmentImgClass(imgList, outOrN ):
             newImages = augmentImage(img, cf);
             l = l+1;
             for imNew in newImages:
+                #print ( img.shape, imNew.shape)
                 if (k < outLen):
                     out[k]=imNew;
                 k = k+1;
