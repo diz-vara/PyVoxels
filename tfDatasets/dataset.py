@@ -42,7 +42,7 @@ def _parse_function(filename):
 
 #%%
 
-base_dir = '/media/undead/'
+base_dir = '/media/avarfolomeev/storage/'
 
 data_folder= base_dir + '/8Tb/201902_USA/out'
 out_folder = base_dir + '/ssd/Voxels'
@@ -73,7 +73,8 @@ l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 l.sort()
 print(len(l), " files read");
 
-
+if (len(l) == 0):
+	exit();
 
 start = 0000
 if (nArg > 5):
@@ -135,7 +136,7 @@ image0=original_images[0]
 
 #load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
-load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-8258'
+load_net = base_dir + 'Data/Segmentation/vox/vox-net-3-9133' #lp-8258'
 
 meta = load_net + '.meta'
 

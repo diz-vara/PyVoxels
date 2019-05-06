@@ -15,13 +15,12 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.contrib.layers import batch_norm
 
-save_file = './mixNet0_arr.ckpt'
 
 # MixNet architecture:
-def MixNetArr(x, keep_prob, nClasses):
+def MixNetText(x, keep_prob, nClasses):
     s = 0.1
     
-    #32x32x3 -> 30x30x4
+    #24x36x1 -> 22x34x4 
     w11 = tf.Variable(tf.truncated_normal((3,3,1,4), 0, 0.05),'w11')
     b11 = tf.Variable(tf.truncated_normal([4],0,0.001),'b11')
 
@@ -30,13 +29,13 @@ def MixNetArr(x, keep_prob, nClasses):
 
 
     
-    #30x30x4 -> 28x28x8
+    #22x34x4 -> 20x32x8
     w12 = tf.Variable(tf.truncated_normal((3,3,4,8),0,s),'w12')
     b12 = tf.Variable(tf.truncated_normal([8],0,0.001),'b12')
     
     c1 = tf.nn.conv2d(c1,w12, strides = [1,1,1,1], padding='VALID',name='conv12') + b12
     
-    #28x28x8 -> 14x14x8
+    #20x32x8 -> 10x16x8
     c1 = tf.nn.max_pool(c1, (1,2,2,1), (1,2,2,1), padding='VALID',name='maxpool12')
     c1 = tf.nn.relu(c1,name='relu12')
 
@@ -45,7 +44,7 @@ def MixNetArr(x, keep_prob, nClasses):
     #print("layer1 :",c1.get_shape(),ac1.get_shape(),"; flattened=", flat1.get_shape())
     #c1 = tf.nn.dropout(c1, keep_prob);
     
-    #14x14x16 -> 12x12x8
+    #10x16x8 -> 8x14x8
     w21 = tf.Variable(tf.truncated_normal((3,3,8,8),0,s),'w21')
     b21 = tf.Variable(tf.truncated_normal([8],0,0.001),'b21')
 
@@ -53,13 +52,13 @@ def MixNetArr(x, keep_prob, nClasses):
     c2 = tf.nn.relu(c2,name='relu21')
     
     
-    #12x12x16 -> 10x10x16
+    #8x14x8 -> 6x12x16
     w22 = tf.Variable(tf.truncated_normal((3,3,8,16),0,s),'w22')
     b22 = tf.Variable(tf.truncated_normal([16],0,0.01),'b22')
     
     c2 = tf.nn.conv2d(c2,w22, strides = [1,1,1,1], padding='VALID',name='conv22') + b22
     
-    #10x10x16 -> 5x5x16
+    #6x12x16 -> 3x6x16
     c2 = tf.nn.max_pool(c2, (1,2,2,1), (1,2,2,1), padding='VALID',name='maxpool22')
     flat2 = flatten(c2);    #NB! before relu!!
     c2 = tf.nn.relu(c2,name='relu22')
@@ -73,16 +72,16 @@ def MixNetArr(x, keep_prob, nClasses):
     c2 = tf.nn.dropout(c2, keep_prob)
 
 
-    #5x5x16 -> 3x3x16
-    w31 = tf.Variable(tf.truncated_normal((3,3,16,32),0,s),'w31')
+    #3x6x16 -> 3x4x32
+    w31 = tf.Variable(tf.truncated_normal((1,3,16,32),0,s),'w31')
     b31 = tf.Variable(tf.truncated_normal([32],0,0.01),'b31')
 
     c3 = tf.nn.conv2d(c2,w31, strides = [1,1,1,1], padding='VALID',name='conv31') + b31
     c3 = tf.nn.relu(c3,name='relu31')
     
-    #3x3x32 -> 1x1x64
-    w32 = tf.Variable(tf.truncated_normal((3,3,32,32),0,s),'w32')
-    b32 = tf.Variable(tf.truncated_normal([32],0,0.01),'b32')
+    #3x4x32 -> 1x2x32
+    w32 = tf.Variable(tf.truncated_normal((3,3,32,64),0,s),'w32')
+    b32 = tf.Variable(tf.truncated_normal([64],0,0.01),'b32')
 
     c3 = tf.nn.conv2d(c3,w32, strides = [1,1,1,1], padding='VALID',name='conv32') + b32
     #c3 = tf.nn.relu(c3)

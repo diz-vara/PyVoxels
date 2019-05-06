@@ -8,9 +8,11 @@ Created on Wed Mar 22 19:19:38 2017
 
 import tensorflow as tf
 import numpy as np
+from MixNet0_text import MixNetText
 
 
-EPOCHS = 200
+
+EPOCHS = 500
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
@@ -20,15 +22,15 @@ keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')
 
 
 #sigs are 32x32x3
-batch_x = tf.placeholder(tf.float32, [None,32,32,1], name = "input_image")
+batch_x = tf.placeholder(tf.float32, [None,24,36,1], name = "input_image")
 # 
 batch_y = tf.placeholder(tf.int32, (None), name = 'labels')
 
 
-n_classes = 11 #37 #7 for thic
+n_classes = 12 #37 #7 for thic
 
 ohy = tf.one_hot(batch_y,n_classes);
-fc2 = MixNetArr(batch_x, keep_prob, n_classes)
+fc2 = MixNetText(batch_x, keep_prob, n_classes)
 
 step = tf.Variable(0, trainable=False)
 starter_learning_rate = 1e-4
@@ -83,7 +85,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = './nets/arrows-5.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-1_500.ckpt'
 
 with tf.Session() as sess:
 
@@ -133,7 +135,7 @@ with tf.Session() as sess:
             f.close()
 
     
-    saver.save(sess,save_file)    
+    saver.save(sess,save_net)    
     
     # Evaluate on the test data
     #tst_loss, tst_acc = eval_data(Xgn_test, y_test)
@@ -145,9 +147,9 @@ with tf.Session() as sess:
     
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-base_dir = '/media/avarfolomeev/storage/Data/Voxels/arrows/'
+base_dir = '/media/avarfolomeev/storage/Data/Voxels/text/'
 
-load_net = base_dir + 'nets/arrows-4.ckpt'
+load_net = base_dir + 'nets/text-1.ckpt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)
@@ -159,7 +161,7 @@ writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
 writer.close()
 
 
-batch_x = tf.placeholder(tf.float32, [None,32,32,1])
+batch_x = tf.placeholder(tf.float32, [None,24,36,1])
 
 input_image = model.get_tensor_by_name('placeholder_1:0')
 keep_prob = model.get_tensor_by_name('keep_prob:0')
