@@ -12,7 +12,7 @@ from MixNet0_text import MixNetText
 
 
 
-EPOCHS = 200
+EPOCHS = 500
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
@@ -85,7 +85,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-1.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-1_500.ckpt'
 
 with tf.Session() as sess:
 
