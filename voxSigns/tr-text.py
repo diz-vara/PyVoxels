@@ -27,7 +27,7 @@ batch_x = tf.placeholder(tf.float32, [None,24,36,1], name = "input_image")
 batch_y = tf.placeholder(tf.int32, (None), name = 'labels')
 
 
-n_classes = 12 #37 #7 for thic
+n_classes = 11 #37 #7 for thic
 
 ohy = tf.one_hot(batch_y,n_classes);
 fc2 = MixNetText(batch_x, keep_prob, n_classes)
@@ -85,7 +85,7 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-1_500.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-2.ckpt'
 
 with tf.Session() as sess:
 
@@ -149,7 +149,7 @@ sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
 base_dir = '/media/avarfolomeev/storage/Data/Voxels/text/'
 
-load_net = base_dir + 'nets/text-1.ckpt'
+load_net = base_dir + 'nets/text-2.ckpt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
 saver.restore(sess,load_net)

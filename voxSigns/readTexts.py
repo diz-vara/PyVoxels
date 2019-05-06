@@ -48,6 +48,8 @@ def read_texts(root_dir):
 
     return units
 
+root_dir = '/media/avarfolomeev/storage/Data/Voxels/text/Text sorting+'
+
 r = read_texts(root_dir)
 images = [_r[0] for _r in r]
 t_thin = np.array([_r[1] for _r in r])
@@ -58,6 +60,7 @@ classes_thick = np.unique(t_thick)
 
 #%%
 #r = read_signs(root_dir)
+
 
 nt_thin = np.zeros(len(r))
 
@@ -115,7 +118,7 @@ import matplotlib.gridspec as gridspec
 
 #display example of each class and show number of samples
 cols = 5
-figsize = (10, 10)
+figsize = (10, 5)
 
 gs = gridspec.GridSpec((n_classes-2) // cols + 1, cols)
 
