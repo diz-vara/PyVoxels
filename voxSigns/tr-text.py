@@ -135,7 +135,7 @@ with tf.Session() as sess:
             f.close()
 
     
-    saver.save(sess,save_file)    
+    saver.save(sess,save_net)    
     
     # Evaluate on the test data
     #tst_loss, tst_acc = eval_data(Xgn_test, y_test)

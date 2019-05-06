@@ -15,7 +15,6 @@ import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 from tensorflow.contrib.layers import batch_norm
 
-save_file = './mixNet0_text.ckpt'
 
 # MixNet architecture:
 def MixNetText(x, keep_prob, nClasses):
