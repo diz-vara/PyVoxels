@@ -270,6 +270,7 @@ def unpersp(base_dir, in_dir, out_dir, _flag):
     
             cv2.imwrite(os.path.join(out_dir, _file),warped)
         except:
+            print("Error: ", sys.exc_info())
             pass
 
 
