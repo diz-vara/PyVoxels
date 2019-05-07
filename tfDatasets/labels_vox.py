@@ -64,7 +64,7 @@ labels_vox = [
     sLabel(  'Transport'        , 21 , (    0,    0, 0x8E) ), 
     sLabel(  'Bicycle,motorbike', 22 , ( 0x77, 0x0B, 0x20) ),
     sLabel(  'Person'           , 23 , ( 0xDC, 0x14, 0x3C) ),
-    sLabel(  'License_plate'    , 24 , ( 0x70, 0xF0, 0xFF) ),
+    sLabel(  'License_plate'    , 24 , ( 0x70, 0x70, 0xFF) ),
     sLabel(  'Animal'           , 25 , ( 0xCA, 0x96, 0xC7) ), 
     sLabel(  'Curb'             , 26 , ( 0x6c, 0xBA, 0xC1) ), 
     sLabel(  'Drop Curb'        , 27 , ( 0x74, 0x6C, 0xC1) ),

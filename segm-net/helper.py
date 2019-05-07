@@ -101,10 +101,11 @@ def get_image_and_labels_list_D(root_path, mode, image_path, label_path):
     
     images = os.listdir(os.path.join(image_mode_dir))
     for image_file in images:
-        image_list.append(os.path.join(image_mode_dir, image_file))
-        # replace possible jpg to png - labels are png always
-        label_list.append(os.path.join(label_mode_dir, 
-                                       image_file.replace('.jpg','.png')))
+        label_file = os.path.join(label_mode_dir, 
+                                       image_file.replace('.jpg','.png'))
+        if (os.path.exists(label_file)):
+            image_list.append(os.path.join(image_mode_dir, image_file))
+            label_list.append(label_file)
             
     return image_list, label_list
 
