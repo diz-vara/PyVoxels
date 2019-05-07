@@ -9,7 +9,7 @@ Created on Wed Mar 22 19:19:38 2017
 import tensorflow as tf
 import numpy as np
 from MixNet0_text import MixNetText
-
+from save_frozen import freeze_graph_d
 
 
 EPOCHS = 500
@@ -85,7 +85,8 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-2.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-3.ckpt'
+
 
 with tf.Session() as sess:
 
@@ -99,7 +100,9 @@ with tf.Session() as sess:
     idx = np.arange(_nSamples)
     _batchSize = BATCH_SIZE
         
-    val_acc_max = 0.9    
+    val_acc_max = 0.9
+    
+    best_epoch = 0
     
     for epoch in range(EPOCHS):
         np.random.shuffle(idx)
@@ -127,6 +130,7 @@ with tf.Session() as sess:
         print()
         
         if (val_acc > val_acc_max ):
+            best_epoch = epoch
             val_acc_max = val_acc;
             saver.save(sess, save_net, global_step=epoch)
                 #save empty file with loss value           
@@ -136,6 +140,13 @@ with tf.Session() as sess:
 
     
     saver.save(sess,save_net)    
+    fn =  save_net + '.' + str(val_acc)
+    
+    ##freeze_graph_d(save_net,"lin2")
+    
+    best_net = save_net + "-" + str(best_epoch)
+    freeze_graph_d(best_net,"lin2")
+    
     
     # Evaluate on the test data
     #tst_loss, tst_acc = eval_data(Xgn_test, y_test)
@@ -143,27 +154,5 @@ with tf.Session() as sess:
 
 
 
-#%%
-    
-sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-base_dir = '/media/avarfolomeev/storage/Data/Voxels/text/'
-
-load_net = base_dir + 'nets/text-2.ckpt'
-
-saver = tf.train.import_meta_graph(load_net + '.meta')
-saver.restore(sess,load_net)
-
-
-model2 = tf.get_default_graph()
-
-writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
-writer.close()
-
-
-batch_x = tf.placeholder(tf.float32, [None,24,36,1])
-
-input_image = model.get_tensor_by_name('placeholder_1:0')
-keep_prob = model.get_tensor_by_name('keep_prob:0')
-nn_output = model.get_tensor_by_name('lin2:0')
     
