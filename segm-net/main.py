@@ -175,19 +175,23 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     for epoch in range (epochs):
         print ('epoch {}  '.format(epoch))
         print(" LR = {:f}".format(lr))     
+        bnum = 0
         for image, label in get_batches_fn(batch_size):
             summary, loss = sess.run([train_op, cross_entropy_loss],
                                      feed_dict={input_image:image, 
                                                 correct_label:label,
                                      keep_prob:0.5, learning_rate:lr})
+            sys.stdout.write('\r' + str(bnum) + '  ' + str(loss) + '   \r')
+            bnum += 1
+
         #writer.add_summary(summary, epoch)                          
-        lr = lr * 0.9                            
+        #lr = lr * 0.9                            
         print(" Loss = {:g}".format(loss))     
         print()                        
         if (loss < min_loss):
             print("saving at step {:d}".format(epoch))     
             min_loss = loss;
-            saver.save(sess, '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox_net',
+            saver.save(sess, '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net',
                        global_step=epoch)
     
 #tests.test_train_nn(train_nn)
@@ -197,13 +201,13 @@ tf.reset_default_graph();
 
 def run():
     labels = lbl.labels_vox
-    num_classes = len(labels)
-    image_shape=(672,800)
+    num_classes = 43 #len(labels)
+    image_shape=(960,768)
     data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
-    runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/runs'
+    runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
 
-    export_dir = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/exports/' + timestamp;
+    export_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/exports/' + timestamp;
 
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
@@ -214,7 +218,7 @@ def run():
     builder = tf.saved_model.builder.SavedModelBuilder(export_dir);
 
     config = tf.ConfigProto(
-       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8),
+       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.92),
        device_count = {'GPU': 1}
     )
 
@@ -222,7 +226,7 @@ def run():
     with tf.Session(config=config) as sess:
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
+        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-0and1',
                                            'train',image_shape, num_classes)
     
     

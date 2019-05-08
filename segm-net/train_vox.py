@@ -121,9 +121,9 @@ labels = lbl_vox.labels_vox
 #ids = [l.id for l in labels]
 
 
-num_classes = len(labels)
+num_classes = 43 #len(labels)
 
-image_shape=(576,1024)
+image_shape=(960,771)
 
 epochs = 5000
 batch_size = 4
@@ -140,11 +140,11 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox_segm/vox-net-lp-599'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/vox/vox-net-3-9307'
 
 
 saver = tf.train.import_meta_graph(load_net + '.meta', tf.trainable_variables())
-writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/logsLP')
+writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/UK/logs')
 
 model = tf.get_default_graph()
 
@@ -165,7 +165,11 @@ saver.restore(sess,load_net)
 input_image = model.get_tensor_by_name('image_input:0')
 keep_prob = model.get_tensor_by_name('keep_prob:0')
 nn_output = layer3_up; #model.get_tensor_by_name('layer3_up/BiasAdd:0')
-correct_label = model.get_tensor_by_name('correct_label:0')
+#correct_label = model.get_tensor_by_name('correct_label:0')
+correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes],
+                                       name = 'correct_label')
+
+
 learning_rate = model.get_tensor_by_name('learning_rate:0')
 
 
@@ -192,7 +196,7 @@ loss = tf.reduce_mean(cross_entropy);
 #                                  learning_rate, num_classes)
 
 
-get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/vox_segm/take1-g',
+get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-0and1', 'train',
                                            image_shape, num_classes)
 
 

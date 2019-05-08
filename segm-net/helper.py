@@ -120,8 +120,8 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
     print("num_classes=",num_classes)
     image_paths, label_paths = get_image_and_labels_list_D(data_folder, 
                                                          split,
-                                                         'image',
-                                                         'gt')
+                                                         'images',
+                                                         'labels')
     
     image_nr = len(image_paths)
     print("Image Number = ",image_nr)
