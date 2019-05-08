@@ -204,9 +204,11 @@ def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False, _grid = 
     return calc_cloud_grid_f(fname, ax, overlay, London, _grid)
     
 def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False, 
-                      _grid = (0.0597, 11, 0.211),delimiter = ','):
+                      _grid = (0.0597, 11, 0.211),delimiter = ',', rotate=None):
     cloud = read_cloud_file(fname, delimiter)[0]
-    #cloud = cloud * rot180
+
+    if (rotate is not None):
+        cloud = cloud * rotate
     _avg, _rot = get_cloud_rotation(cloud)
     
     flat = rotate_cloud(cloud,_avg,_rot)
@@ -215,8 +217,8 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
     
     p0,box_rot = get_box_rotation(box)
     
-    if (London):
-        grid =(0.04, 11, 0.14)# - LONDON
+    #if (London):
+    #    grid =(0.04, 11, 0.14)# - LONDON
 
     grid = build_grid(_grid[0], _grid[1], _grid[2])
     
@@ -229,7 +231,8 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
     
     sorted_grid = sort_grid(rotated_grid,_grid[1])
 
-    
+    if (rotate is not None):
+        sorted_grid = sorted_grid * rotate.transpose()
     
     if (ax):
         scatt3d(ax,cloud,not overlay,'#1f1f1f','o',3)
@@ -311,11 +314,11 @@ def calc_image_grid(num, base_dir,back,ax=None):
     return load_draw_2d_board(fname,back,ax)
     
 
-def load_draw_2d_board(name, back,ax=None, shape = None):
+def load_draw_2d_board(name,  mtx, dist, back,ax=None, shape = None):
     img = cv2.imread(name,-1)
-    return draw_2d_board(img, back, ax, shape)
+    return draw_2d_board(img, mtx, dist, back, ax, shape)
     
-def draw_2d_board(img, back=False, ax=None, shape = None):
+def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
     #if (not ax is None):
     #    ax.cla()
 
@@ -375,7 +378,7 @@ def draw_2d_board(img, back=False, ax=None, shape = None):
     
         
     if (back):    
-        final_order = final_order.reshape((11,11)).transpose().reshape(-1)    
+        final_order = final_order.reshape(shape).transpose().reshape(-1)    
     cxy_ret = cxy[final_order.astype(np.int32)]
     
     if (not ax is None):
@@ -386,7 +389,7 @@ def draw_2d_board(img, back=False, ax=None, shape = None):
    
     return cxy_ret
 #%% 
-
+'''
 rot180 = np.matrix(np.diag([-1,-1,1]))
 
 clouds = np.empty((0,3),np.float64)
@@ -433,4 +436,5 @@ imgpts, jac = cv2.projectPoints(g, rot, t, mtx, dist)
 
 res_name = "rot_t_{:04d}.p".format(num)
 pickle.dump({"rot":rot,"t":t},open(res_name,"wb"))
+'''
     

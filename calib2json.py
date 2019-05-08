@@ -18,12 +18,16 @@ def build_dict(var):
 
 def build_j_calib_dict(calib_dict):
 
-    return {"cameraName":calib_dict["camera_name"],
+    json_dict = {"cameraName":calib_dict["camera_name"],
             "cameraCenter":calib_dict["camera_center"],
             "cameraMatrix":build_dict(calib_dict["mtx"]), 
                "distCoeffs":build_dict(calib_dict["dist"]),
                "rot_vec":build_dict(calib_dict["rot"]),
-               "t_vec":build_dict(calib_dict["t"])}
+               "t_vec":build_dict(calib_dict["t"])
+               }
+    if "cut_rows" in calib_dict.keys():
+        json_dict["cut_rows"] = calib_dict["cut_rows"]
+    return json_dict           
 
     
 def save_calib_json(fname, front_calib_dict, back_calib_dict=None):

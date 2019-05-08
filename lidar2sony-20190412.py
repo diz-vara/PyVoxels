@@ -97,7 +97,7 @@ def _proc_cal(_nSamples=-1):
     print(idx,'\r\n', rot.transpose(),'\r\n', t.transpose())
     return rot,t
 #%%
-def _proc_cal_idx(idx, back=False):
+def _proc_cal_idx(idx, rotate = None, back=False):
     
     pts_idx = np.arange(81);                       
     #pts_idx = np.array([1,5,9,37,41,45,73,77,81])-1
@@ -114,8 +114,10 @@ def _proc_cal_idx(idx, back=False):
          try:
             _cloud,_grid = calc_cloud_grid_f(csvlist[cl],ax3, True, 
                                              _grid=(0.111, 9, 0.140),
-                                             delimiter = ','); #' ' for cam2!
+                                             delimiter = ',',rotate=rotate); #' ' for cam2!
             _board = load_draw_2d_board(jpglist[cl],mtx, dist, back,ax1,(9,9));
+
+            #_cloud = _cloud * rm90
 
             _grid = _grid[pts_idx]
             _board = _board[pts_idx]                                        
@@ -152,8 +154,8 @@ base_dir = 'e:/data/Voxels/20190410_cal/'
 
 #from process_board_cloud import *
 
-camera = 'cam_2'
-angle = np.radians(180+90); # 180-45, 180, 180+45 
+camera = 'cam_1'
+angle = np.radians(0); #180+90); # 180-45, 180, 180+45 
 
 
 #base_dir = 'e:/data/Voxels/201903_USA/20190321_cal_cam1/'
@@ -185,7 +187,7 @@ pickle.dump(cam_calib_dict,open(base_dir+"uk_"+camera+"_dict_81.p","wb"))
 save_calib_json(base_dir+"uk_"+camera+"_81.json", cam_calib_dict)
 
            
-cam_2_dict_81 = cam_calib_dict
+cam_1_dict_81 = cam_calib_dict
 
 #%%
 
