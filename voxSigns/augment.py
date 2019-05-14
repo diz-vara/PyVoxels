@@ -72,7 +72,7 @@ def getPerspMatrix(x, y, z, size):
 
 
 def transformImg(img, x=0, y=0, z=0, scale = 1):
-    size = img.shape[:2]
+    size = img.shape[2::-1]
     
     M = getPerspMatrix(x, y, z, size)
     if scale != 1:
@@ -93,9 +93,9 @@ def augmentImage(img, N:int):
     
     out = [img];
 
-    rangeX = [  0, 20];
-    rangeY = [-35, 35];
-    rangeZ = [-15, 15];
+    rangeX = [  0, 2];
+    rangeY = [-5, 5];
+    rangeZ = [-5, 5];
     rangeS = [0.8, 1.2]
     rangeI = [-0.3, 0.3];
 
@@ -105,15 +105,16 @@ def augmentImage(img, N:int):
         y = np.random.uniform(rangeY[0], rangeY[1]);
         z = np.random.uniform(rangeZ[0], rangeZ[1]);
         scale = np.random.uniform(rangeS[0], rangeS[1]);
-        motion = np.random.uniform();
-        if motion > 0.8:
-            tmp = cv2.filter2D(img,-1,motion_kern5);
-        elif motion > 0.5 :
-            tmp = cv2.filter2D(img,-1,motion_kern3);
-        else:
-            tmp = img;
+        motion = 0; #np.random.uniform();
+
+
         intens = np.random.uniform(rangeI[0], rangeI[1]);
+ 
+        tmp = img
         tmp = np.clip(tmp+intens,-0.5,0.5);
+        if (np.random.uniform() > 0.5):
+            tmp = cv2.flip(tmp,-1)
+
         out.append(transformImg(tmp,x,y,z,scale));
     return out;
 
@@ -144,6 +145,7 @@ def augmentImgClass(imgList, outOrN ):
             newImages = augmentImage(img, cf);
             l = l+1;
             for imNew in newImages:
+                #print ( img.shape, imNew.shape)
                 if (k < outLen):
                     out[k]=imNew;
                 k = k+1;
@@ -158,6 +160,7 @@ def augmentImgClass(imgList, outOrN ):
 #%%
 
 def augmentImageList(X,Y,targetCount):
+    n_classes = max(Y) + 1
     indicies = [np.where(Y == i)[0] for i in range(n_classes)]
     totalLen = targetCount * n_classes;
     targetXShape = list(X.shape);

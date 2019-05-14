@@ -8,9 +8,11 @@ Created on Wed Mar 22 19:19:38 2017
 
 import tensorflow as tf
 import numpy as np
+from MixNet0_text import MixNetText
+from save_frozen import freeze_graph_d
 
 
-EPOCHS = 200
+EPOCHS = 500
 BATCH_SIZE = 64
 
 tf.reset_default_graph()
@@ -20,7 +22,7 @@ keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')
 
 
 #sigs are 32x32x3
-batch_x = tf.placeholder(tf.float32, [None,32,32,1], name = "input_image")
+batch_x = tf.placeholder(tf.float32, [None,24,36,1], name = "input_image")
 # 
 batch_y = tf.placeholder(tf.int32, (None), name = 'labels')
 
@@ -28,7 +30,7 @@ batch_y = tf.placeholder(tf.int32, (None), name = 'labels')
 n_classes = 11 #37 #7 for thic
 
 ohy = tf.one_hot(batch_y,n_classes);
-fc2 = MixNetArr(batch_x, keep_prob, n_classes)
+fc2 = MixNetText(batch_x, keep_prob, n_classes)
 
 step = tf.Variable(0, trainable=False)
 starter_learning_rate = 1e-4
@@ -83,7 +85,8 @@ def eval_data(xv, yv):
 
 #%%
     
-save_net = './nets/arrows-5.ckpt'
+save_net = '/media/avarfolomeev/storage/Data/Voxels/text/net/text-3.ckpt'
+
 
 with tf.Session() as sess:
 
@@ -97,7 +100,9 @@ with tf.Session() as sess:
     idx = np.arange(_nSamples)
     _batchSize = BATCH_SIZE
         
-    val_acc_max = 0.9    
+    val_acc_max = 0.9
+    
+    best_epoch = 0
     
     for epoch in range(EPOCHS):
         np.random.shuffle(idx)
@@ -125,6 +130,7 @@ with tf.Session() as sess:
         print()
         
         if (val_acc > val_acc_max ):
+            best_epoch = epoch
             val_acc_max = val_acc;
             saver.save(sess, save_net, global_step=epoch)
                 #save empty file with loss value           
@@ -133,7 +139,14 @@ with tf.Session() as sess:
             f.close()
 
     
-    saver.save(sess,save_file)    
+    saver.save(sess,save_net)    
+    fn =  save_net + '.' + str(val_acc)
+    
+    ##freeze_graph_d(save_net,"lin2")
+    
+    best_net = save_net + "-" + str(best_epoch)
+    freeze_graph_d(best_net,"lin2")
+    
     
     # Evaluate on the test data
     #tst_loss, tst_acc = eval_data(Xgn_test, y_test)
@@ -141,27 +154,5 @@ with tf.Session() as sess:
 
 
 
-#%%
-    
-sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 
-base_dir = '/media/avarfolomeev/storage/Data/Voxels/arrows/'
-
-load_net = base_dir + 'nets/arrows-4.ckpt'
-
-saver = tf.train.import_meta_graph(load_net + '.meta')
-saver.restore(sess,load_net)
-
-
-model2 = tf.get_default_graph()
-
-writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
-writer.close()
-
-
-batch_x = tf.placeholder(tf.float32, [None,32,32,1])
-
-input_image = model.get_tensor_by_name('placeholder_1:0')
-keep_prob = model.get_tensor_by_name('keep_prob:0')
-nn_output = model.get_tensor_by_name('lin2:0')
     

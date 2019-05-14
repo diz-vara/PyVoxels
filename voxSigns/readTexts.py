@@ -15,7 +15,7 @@ from normalize import *
 from augment import *
 from splitIndicies import *
 
-def read_signs(root_dir):
+def read_texts(root_dir):
     
     filenames =  [f for f in glob.iglob(root_dir + '/**/*.*g', recursive=True)]
         
@@ -38,16 +38,19 @@ def read_signs(root_dir):
         """    
         folder = os.path.split(f)[0];
         folder, thin_class = os.path.split(folder)
+        thick_class = thin_class.split('_')[0]
 
-        thick_class = thin_class
+        #thick_class = thin_class
         #while (folder != root_dir and folder != '/'):
         #    folder, thick_class = os.path.split(folder)
             
-        units.append((img, thin_class,thick_class))
+        units.append((img, thin_class, thick_class))
 
     return units
 
-r = read_signs(root_dir)
+root_dir = '/media/avarfolomeev/storage/Data/Voxels/text/Text sorting+'
+
+r = read_texts(root_dir)
 images = [_r[0] for _r in r]
 t_thin = np.array([_r[1] for _r in r])
 t_thick = np.array([_r[2] for _r in r])
@@ -57,6 +60,7 @@ classes_thick = np.unique(t_thick)
 
 #%%
 #r = read_signs(root_dir)
+
 
 nt_thin = np.zeros(len(r))
 
@@ -74,15 +78,18 @@ for c in range(len(classes_thick)):
 #count number of each class examples
 #and store the index of the last one
 
-y_all = nt_thin.astype(int)   
-n_classes = len(classes_thin)
+nt_ = nt_thick
+classes_ = classes_thick
+
+y_all = nt_.astype(int)   
+n_classes = len(classes_)
     
 nSamples = len(y_all)    
 
-X_all = np.zeros((nSamples,32,32),dtype='uint8')
+X_all = np.zeros((nSamples,24,36),dtype='uint8')
 
 for i in range(nSamples):
-    X_all[i] = scipy.misc.imresize(images[i],(32,32))
+    X_all[i] = scipy.misc.imresize(images[i],(24,36))
 
 #NB! Change to thick here!!!!
     
@@ -99,7 +106,7 @@ y_train = y_all[t]
 y_val = y_all[v]
 
 
-(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,8000)
+(Xgn_t, Yg_t) = augmentImageList(X_train,y_train,10000)
 
 
 
@@ -111,37 +118,23 @@ import matplotlib.gridspec as gridspec
 
 #display example of each class and show number of samples
 cols = 5
-figsize = (10, 7)
+figsize = (10, 5)
 
-gs = gridspec.GridSpec(n_classes // cols + 1, cols)
+gs = gridspec.GridSpec((n_classes-2) // cols + 1, cols)
 
 fig1 = plt.figure(num=1, figsize=figsize)
 ax = []
 
-
-classes_full = [' not an arrow',
-                'ahead or left',
-                'ahead, left or right',
-                'ahead or right',
-                'ahead',
-                'turn right ud',
-                'turn left ud',
-                'change left',
-                'change right',
-                'turn left',
-                'turn right'
-                ]
-
 exShape = list(X_train.shape);
 exShape[0] = n_classes;
 examples = np.empty(exShape, dtype=np.uint8)
-for i in range(n_classes-1):
-    row = (i // cols)
-    col = i % cols
+for i in range(1,n_classes):
+    row = ((i-1) // cols)
+    col = (i-1) % cols
     ax.append(fig1.add_subplot(gs[row, col]))
-    ax[-1].set_title('%s\n(%d) N=%d' % (classes_full[i+1] ,i+101,   classCounts[i+1]))
+    ax[-1].set_title('%s\n(%d) N=%d' % (classes_[i] ,i+200,   classCounts[i]))
     #example
-    img = X_all[classIndicies[i+1][0]]
+    img = X_all[classIndicies[i][0]]
     #rescale to make dark images visible
     cf = np.int(255/np.max(img)) 
     examples[i] = img*cf;

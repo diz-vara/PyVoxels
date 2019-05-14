@@ -76,7 +76,8 @@ l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 l.sort()
 print(len(l), " files read");
 
-
+if (len(l) == 0):
+	exit();
 
 start = 0000
 if (nArg > 5):
