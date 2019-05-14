@@ -85,6 +85,11 @@ if (nArg > 5):
     except:
         start = 0;    
 
+load_net = ""
+
+if (nArg > 6):
+    load_net = sys.argv[6]
+
 
 total_num = len(l)
 
@@ -138,7 +143,12 @@ image0=original_images[0]
 
 #load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
-load_net = base_dir + 'Data/Segmentation/UK/nets/OS_net-62'
+
+if (len(load_net) == 0):
+	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-86"
+
+
+print ("Using net ", load_net)
 
 meta = load_net + '.meta'
 
