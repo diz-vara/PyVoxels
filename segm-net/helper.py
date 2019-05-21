@@ -138,8 +138,8 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
         
     
         image_nr = len(image_paths)
-        augmentation_coeff = (1 + 5) * 2
-        total_nr = image_nr #* augmentation_coeff;        
+        augmentation_coeff = 1 #(1 + 5) * 2
+        total_nr = image_nr * augmentation_coeff;        
         
         indexes = np.arange(total_nr)
         random.shuffle(indexes)
@@ -155,8 +155,8 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
                 if ( i >= total_nr):
                     i = i - total_nr; #cycle in case of overflow
                 idx = indexes[i]
-                image_file = image_paths[idx] # // augmentation_coeff]
-                gt_image_file = label_paths[idx] # // augmentation_coeff]
+                image_file = image_paths[idx // augmentation_coeff]
+                gt_image_file = label_paths[idx // augmentation_coeff]
 
                 #print(image_file)
                 #print(gt_image_file)
@@ -170,25 +170,28 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
                 assert(image.shape[:2] == gt_image.shape[:2])                
     
                 old_shape = image.shape
-                min_scale = np.max((1.,old_shape[1]/(image_shape[1]*2)) )
-                max_scale = np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
-                scale = np.random.rand()*(max_scale-min_scale) + min_scale
+                min_scale = 0.8 # np.max((1.,old_shape[1]/(image_shape[1]*2)) )
+                max_scale = 1.2 #np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
+                scale = np.random.uniform(min_scale, max_scale) 
 
                 image=cv2.resize(image, dsize=None,fx=1./scale, fy=1./scale)
                 gt_image=cv2.resize(gt_image, dsize=None,fx=1./scale, fy=1./scale,
                                     interpolation=cv2.INTER_NEAREST)
 
 
-                new_size = image.shape[:2]
-                max_x_shift = max(0,new_size[1]-image_shape[1])
-                max_y_shift = max(0,new_size[0]-image_shape[0])
+                col_sum = np.array([image[:,i,:].sum() for i in range(image.shape[1])])
+                row_sum = np.array([image[i,:,:].sum() for i in range(image.shape[0])])
+                col_pad = np.argmax(col_sum == 0)
+                row_pad = np.argmax(row_sum == 0)
                 
-                x_shift = int(np.random.rand()*max_x_shift)
-                y_shift = int(np.random.rand()*max_y_shift)
+                max_x_shift = max(0,col_pad-image_shape[1])
+                max_y_shift = max(0,row_pad-image_shape[0])
+                
+                x_shift = int(np.random.uniform(0,max_x_shift))
+                y_shift = int(np.random.uniform(0,max_y_shift))
                 
                 cropped = image[y_shift:y_shift+image_shape[0], 
                                 x_shift:x_shift+image_shape[1], :]
-
 
                 gamma = np.random.rand() + 0.5 #0.5 .... 1.5
                 shift = (np.random.rand() - 0.5 ) / 2
