@@ -53,10 +53,10 @@ def train_nn(sess, epochs, batch_size,
 
     #lr = sess.run(learning_rate)
     merged = tf.summary.merge_all()
-    lr = 1.1e-4
+    lr = 1.e-4
     min_loss = 0.4
     for epoch in range (epochs):
-        print ('epoch {}  '.format(epoch))
+        print ('epoch {} ({}) '.format(epoch+base, epoch))
         sys.stdout.flush()
         
         get_train_batches_fn = build_batch_fn(dataset_file, 'train',
@@ -70,7 +70,7 @@ def train_nn(sess, epochs, batch_size,
             lr = float(open(lr_file).read())
         except:
             0;    
-        _lr = lr * 0.9965                     
+        _lr = lr #* 0.9965                     
         print(" LR = {:g}".format(lr))
         open(lr_file,'w').write(str(_lr))
         cum_loss = 0
@@ -155,7 +155,7 @@ timestamp = time.strftime("%Y%m%d_%H%M%S");
 
 labels = lbl.labels_vox
 num_classes = 43 #len(labels)
-image_shape=(960,768)
+image_shape=(768,960)
 
 epochs = 5000
 batch_size = 3
@@ -172,7 +172,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net-10'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net-333'
 
 min_loss_name = 'min_loss.txt'
 
@@ -228,7 +228,7 @@ print('training')
 train_nn(sess, epochs, batch_size, 
          dataset_file, image_shape, num_classes,
          train_op,
-         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 12) 
+         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 500) 
 
 
 
