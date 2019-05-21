@@ -39,7 +39,8 @@ def read_ontology(fname, delimiter = ','):
             color = tuple(int(hex_color[i:i+2], 16) for i in (1, 3, 5))
             name = row[2]
             code = int(row[3])
-            labels.append(sLabel(name, code, color))
+            if (code != 0):
+                labels.append(sLabel(name, code, color))
         
     colors = np.array([label.color for label in labels]).astype(np.uint8)
     
