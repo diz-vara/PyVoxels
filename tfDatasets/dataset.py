@@ -25,6 +25,7 @@ import helper
 
 import matplotlib.pyplot as plt
 import sys
+from read_ontology import read_ontology
 
 
 
@@ -42,7 +43,7 @@ def _parse_function(filename):
 
 #%%
 
-base_dir = '/media/undead/'
+base_dir = '/media/nvidia/'
 
 data_folder= base_dir + '/8Tb/201902_USA/out'
 out_folder = base_dir + '/ssd/Voxels'
@@ -52,6 +53,8 @@ dataname = 'data/'
 
 ride = '20190216_115220'
 camera = 'argus_cam_0'
+
+ontology, _ = read_ontology('/media/nvidia/Data/Segmentation/UK/1375272-ontology.csv')
 
 
 nArg = len(sys.argv)
@@ -73,7 +76,8 @@ l = glob(os.path.join(data_folder, dataname, '*.jpg'))
 l.sort()
 print(len(l), " files read");
 
-
+if (len(l) == 0):
+	exit();
 
 start = 0000
 if (nArg > 5):
@@ -81,6 +85,11 @@ if (nArg > 5):
         start = int(sys.argv[5])
     except:
         start = 0;    
+
+load_net = ""
+
+if (nArg > 6):
+    load_net = sys.argv[6]
 
 
 total_num = len(l)
@@ -106,10 +115,10 @@ print("writing to ", os.path.join(camera_folder, road_name));
 
 
 labels = lbl.labels_vox
-num_classes = len(labels)
+num_classes = len(ontology)
 
 alfa = (127,) #semi-transparent
-colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
+colors = np.array([ont.color + alfa for ont in ontology]).astype(np.uint8)
 #%%
 batchsize = 5
 
@@ -135,7 +144,12 @@ image0=original_images[0]
 
 #load_net = base_dir + 'Data/Segmentation/net/my2-net-73949'
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
-load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-8258'
+
+if (len(load_net) == 0):
+	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-86"
+
+
+print ("Using net ", load_net)
 
 meta = load_net + '.meta'
 
