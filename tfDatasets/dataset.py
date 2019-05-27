@@ -48,7 +48,7 @@ base_dir = '/media/nvidia/'
 data_folder= base_dir + '/8Tb/201902_USA/out'
 out_folder = base_dir + '/ssd/Voxels'
 
-image_shape= (1024,1216)
+image_shape= (768,960) #(1024,1216)
 dataname = 'data/'
 
 ride = '20190216_115220'
@@ -146,7 +146,7 @@ image0=original_images[0]
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
 
 if (len(load_net) == 0):
-	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-86"
+	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-333"
 
 
 print ("Using net ", load_net)
