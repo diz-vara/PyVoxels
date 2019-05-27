@@ -11,6 +11,8 @@ import os
 import glob
 import sys
 
+import argparse
+
 
 def resize_images(input_dir, output_dir, target_shape):
     
@@ -37,6 +39,7 @@ def resize_images(input_dir, output_dir, target_shape):
 
         img = cv2.imread(im_file,-1)
         img_shape = np.array(img.shape)
+        print (fname)
         
         mask = cv2.imread(os.path.join(labels_dir, fname + ".png"),-1)
         
@@ -78,4 +81,17 @@ def resize_images(input_dir, output_dir, target_shape):
         
     return np.array(pad_list)
         
+#%%%
+
+if (__name__ == "__main__"):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dir_in", type = str, default = "", help = "Input directory (containing /images and /labels subdirs")
+    parser.add_argument("dir_out", type = str, default = "", help = "Output directory")
+    parser.add_argument('--shape_height', type=int, default=1028, help='Height of cropped input image to network')
+    parser.add_argument('--shape_width', type=int, default=1280, help='Width of cropped input image to network')
+    args = parser.parse_args()
+        
+    target_shape = (args.shape_height, args.shape_width)
+    print ("Resing from ", args.dir_in, " to " , args.dir_out,", shape=", target_shape)
+    resize_images(args.dir_in, args.dir_out, target_shape)
     
