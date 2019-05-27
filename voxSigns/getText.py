@@ -55,13 +55,13 @@ cascadeText = cv2.CascadeClassifier('/media/nvidia/Data/Voxels/Arrows/cTxt_16x24
 #
 
 
-arrowsNet = read_frozen('/media/nvidia/Data/Voxels/Arrows/arrows-5.frozen_model.pb')
+textNet = read_frozen('/media/nvidia/Data/Voxels/Arrows/text-2.frozen_model.pb')
 
-inp = arrowsNet.get_tensor_by_name('input_image:0')
-keep_prob = arrowsNet.get_tensor_by_name('keep_prob:0')
-out = arrowsNet.get_tensor_by_name('lin2:0')
+inp = textNet.get_tensor_by_name('input_image:0')
+keep_prob = textNet.get_tensor_by_name('keep_prob:0')
+out = textNet.get_tensor_by_name('lin2:0')
 
-arrow_types = ["BG", "LU", "LUR", "RU", "U", "dL", "dR", "diagL", "diagR", "uL", "uR"]
+text_types = ["bg", "Ahead", "Bus", "Clear", "Here", "Keep", "Lane", "Only", "Signal", "Stop", "Wait"]
 
 #%%
 ROAD_MARKING = 7
@@ -86,13 +86,13 @@ def getText(base_dir, out_dir = "", start = 0, end = -1):
         except:
             pass
 
-        for sub_dir in arrow_types:
+        for sub_dir in text_types:
             try:
                 os.makedirs(os.path.join(out_dir,sub_dir))
             except:
                 pass;
         
-        print(" writing arrows to " + out_dir)
+        print(" writing texts to " + out_dir)
     
     old_files = glob.glob(in_dir+'/*_.*g')
     for file in old_files: os.remove(file)
@@ -119,7 +119,7 @@ def getText(base_dir, out_dir = "", start = 0, end = -1):
     #config.gpu_options.visible_device_list = '1'
     warp_shape_0 = (0,0)
 
-    with tf.Session(graph=arrowsNet, config=config) as sess:
+    with tf.Session(graph=textNet, config=config) as sess:
     
         for _file in im_files:
             print(str(cnt+start) + end_string)
@@ -163,24 +163,24 @@ def getText(base_dir, out_dir = "", start = 0, end = -1):
                     r_cnt = 0
                     for (x,y,w,h) in detected:
                         arr_img = warped[y:y+h, x:x+w]
-                        imf  = np.float32( cv2.resize(arr_img,(32,32)) )
+                        imf  = np.float32( cv2.resize(arr_img,(36,24)) )
                         imf = (imf-128.)/128.
                         imf = np.expand_dims(imf,-1)
 
                         #classify
-                        #o = sess.run([out], feed_dict={inp:[imf], keep_prob:1.0})                        
-                        arrow_type = 0 #np.argmax(o[0],1)[0]
-                        print('type ', arrow_type)
+                        o = sess.run([out], feed_dict={inp:[imf], keep_prob:1.0})                        
+                        text_type = np.argmax(o[0],1)[0]
+                        print('type ', text_type)
                         
                         r_color = (0,80, 0);
 
-                        if (arrow_type > 0):
+                        if (text_type > 0):
                             r_color = (0,0,255);
-                            out_type = arrow_type + 100; #separate type range
+                            out_type = text_type + 200; #separate type range
                             mask[y:y+h, x:x+w] = out_type.astype(np.uint8);
 
                         if (len(out_dir) > 0):
-                            type_str = arrow_types[arrow_type]
+                            type_str = text_types[text_type]
                             out_str = '-%d.jpg' % (r_cnt)
                             out_file = os.path.join(out_dir, type_str,
                                                     _file.replace('.jpg',out_str))
@@ -206,15 +206,15 @@ def getText(base_dir, out_dir = "", start = 0, end = -1):
                                                  
                         old_mask = cv2.imread(mask_path,0);
                         #restore original ROAD_MARKING
-                        old_mask[ (old_mask >= 100) & (old_mask < 120)] = ROAD_MARKING
+                        old_mask[ (old_mask >= 200) & (old_mask <= 210)] = ROAD_MARKING
                         
-                        idx = np.where( (old_mask==ROAD_MARKING) & (mask > 100) )
+                        idx = np.where( (old_mask==ROAD_MARKING) & (mask > 200) )
                         old_mask[idx] = mask[idx]
                         #print('saving ', mask_path)
                         os.rename(mask_path, old_mask_path)
                         cv2.imwrite(mask_path,old_mask)
             except:
-                print("Error: ", sys.exc_info()[0])
+                print("Error: ", sys.exc_info())
                 pass
 
 
@@ -270,6 +270,7 @@ def unpersp(base_dir, in_dir, out_dir, _flag):
     
             cv2.imwrite(os.path.join(out_dir, _file),warped)
         except:
+            print("Error: ", sys.exc_info())
             pass
 
 
