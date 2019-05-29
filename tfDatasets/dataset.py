@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import sys
 from read_ontology import read_ontology
 
+from datetime import datetime
 
 
 #%%
@@ -117,6 +118,7 @@ print("writing to ", os.path.join(camera_folder, road_name));
 labels = lbl.labels_vox
 num_classes = len(ontology)
 
+
 alfa = (127,) #semi-transparent
 colors = np.array([ont.color + alfa for ont in ontology]).astype(np.uint8)
 #%%
@@ -153,6 +155,11 @@ print ("Using net ", load_net)
 
 meta = load_net + '.meta'
 
+
+time_string = datetime.now().strftime("%Y%m%d_%H%M%S");
+
+with open(os.path.join(camera_folder, road_name, "segm.txt"),'a') as seg_file :
+    seg_file.write(time_string + ' ' + os.path.split(load_net)[-1] + '\n')
 
 csvname = os.path.join(out_folder, ride, ride + "_" + camera + ".csv")
 
