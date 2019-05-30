@@ -172,7 +172,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net-333'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net-770'
 
 min_loss_name = 'min_loss.txt'
 
@@ -228,7 +228,7 @@ print('training')
 train_nn(sess, epochs, batch_size, 
          dataset_file, image_shape, num_classes,
          train_op,
-         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 500) 
+         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 771) 
 
 
 
