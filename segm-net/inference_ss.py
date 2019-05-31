@@ -40,6 +40,13 @@ def _parse_function(filename):
 #%%
 
 base_dir = '/media/avarfolomeev/storage/Data/'
+
+try:
+    base_dir = os.environ['BASE_DATA_PATH']
+except:
+    pass
+        
+
 input_folder = base_dir + '/Voxels/201904_UK/'
 put_folder = base_dir + '/Voxels/201904_UK/o/'
 dataname = 'data/'
