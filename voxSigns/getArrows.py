@@ -125,16 +125,16 @@ class Cam2Params(CamParams):
 # plt.imshow(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
 
 GetArrowsAndTextsParams = namedtuple('GetArrowsAndTextsParams',
-                                     ('arrowsCascadeClassifierPath', 'arrowsNet', 'inp', 'keep_prob', 'out', 'arrow_types')
-                                     ('textsCascadeClassifierPath', 'textsNet'))
+                                     ('arrowsCascadeClassifierPath', 'arrowsNet', 'inp', 'keep_prob', 'out', 'arrow_types',
+                                     'textsCascadeClassifierPath', 'texts_net'))
 
 GetArrowsAndTextsResult = namedtuple('GetArrowsAndTextsResult',
-                                     ('detected_arrows_count, non_zero_arrows_count')
-                                     ('detected_texts_count, non_zero_texts_count'))
+                                     ('detected_arrows_count', 'non_zero_arrows_count',
+                                     'detected_texts_count', 'non_zero_texts_count'))
 
 # %%
 ROAD_MARKING = 7
-
+# img_in, params, warped, sess, rects
 
 def doGetArrows(img_in,
                 _file,
@@ -143,6 +143,9 @@ def doGetArrows(img_in,
                 warped: bool,
                 sess: tf.Session,
                 inout_rects):
+
+    #print('doGetArrows()')           
+
     try:
         cascadeArrows = thread_local_data.cascadeArrows
     except AttributeError:
@@ -157,8 +160,9 @@ def doGetArrows(img_in,
                                               maxSize=(400, 400))
     count = 0
 
+
     if len(detected) > 0:
-        # print("Detected ", len(detected), " arrows")
+        #print("doGetArrows: Detected ", len(detected), " arrows")
         mask = np.zeros(img_in.shape[:2], dtype=np.uint8)
         rects = np.zeros(img_in.shape, dtype=np.uint8)
         r_cnt = 0
@@ -181,13 +185,13 @@ def doGetArrows(img_in,
                 out_type = arrow_type + 100  # separate type range
                 mask[y:y + h, x:x + w] = out_type.astype(np.uint8)
 
-            # if len(out_dir) > 0:
-            #     type_str = params.arrow_types[arrow_type]
-            #     out_str = '-%d.jpg' % (r_cnt)
-            #     out_file = os.path.join(out_dir,
-            #                             type_str,
-            #                             _file.replace('.jpg', out_str))
-            #     cv2.imwrite(out_file, arr_img)
+            if len(out_dir) > 0:
+                type_str = params.arrow_types[arrow_type]
+                out_str = '-%d.jpg' % (r_cnt)
+                out_file = os.path.join(out_dir,
+                                        type_str,
+                                        _file.replace('.jpg', out_str))
+                cv2.imwrite(out_file, arr_img)
 
             r_cnt = r_cnt + 1
 
@@ -196,16 +200,18 @@ def doGetArrows(img_in,
         inout_rects = inout_rects | rects
 
     return GetArrowsAndTextsResult(detected_arrows_count=len(detected),
-                                   non_zero_arrows_count=count)
+                                   non_zero_arrows_count=count, detected_texts_count=0, non_zero_texts_count = 0)
 
 
 def doGetTexts(img_in,
-               out_dir,
                _file,
+               out_dir,
                params: GetArrowsAndTextsParams,
                warped: bool,
                texts_net: Classifier.Classifier,
                inout_rects):
+
+    #print('doGetTexts()')           
     try:
         cascadeTexts = thread_local_data.cascadeTexts
     except AttributeError:
@@ -221,16 +227,18 @@ def doGetTexts(img_in,
     count = 0
 
     if len(detected) > 0:
-        # print("Detected ", len(detected), " texts")
+        #print("DoGetTextx(): Detected ", len(detected), " texts")
         mask = np.zeros(img_in.shape[:2], dtype=np.uint8)
         rects = np.zeros(img_in.shape, dtype=np.uint8)
         r_cnt = 0
         for (x, y, w, h) in detected:
             img = warped[y:y + h, x:x + w]
+            img = np.float32(img) #cv2.resize(img,(48,32))
             img = np.expand_dims(img, -1)
 
             # classify
             class_id = texts_net.classify_image_from_array(img)
+
             # print('text type ', class_id)
 
             r_color = (0, 100, 0)
@@ -241,12 +249,12 @@ def doGetTexts(img_in,
                 out_type = class_id + 200  # separate type range
                 mask[y:y + h, x:x + w] = out_type.astype(np.uint8)
 
-            # if len(out_dir) > 0:
-            #     type_str = params.arrow_types[texts_net.get_class_name_by_id(class_id)]
-            #     out_str = '-%d.jpg' % (r_cnt)
-            #     out_file = os.path.join(out_dir, type_str,
-            #                             _file.replace('.jpg', out_str))
-            #     cv2.imwrite(out_file, img)
+            if len(out_dir) > 0:
+                type_str = texts_net.get_class_name_by_id(class_id)
+                out_str = '-%d.jpg' % (r_cnt)
+                out_file = os.path.join(out_dir, type_str,
+                                        _file.replace('.jpg', out_str))
+                cv2.imwrite(out_file, img)
 
             r_cnt = r_cnt + 1
 
@@ -254,7 +262,8 @@ def doGetTexts(img_in,
 
         inout_rects = inout_rects | rects
 
-    return GetArrowsAndTextsResult(detected_texts_count=len(detected),
+    return GetArrowsAndTextsResult(detected_arrows_count=0,
+                                   non_zero_arrows_count=0, detected_texts_count=len(detected),
                                    non_zero_texts_count=count)
 
 
@@ -266,14 +275,14 @@ def doGetArrowsAndTexts(_file,
     img_in = cv2.imread(_file, -1)  # GRAY only!!!
     grey = cv2.cvtColor(img_in, cv2.COLOR_BGR2GRAY)
     warp_shape = (img_in.shape[1], img_in.shape[0])
-    # if warp_shape_0 != warp_shape:
-    #    umap = cv2.initUndistortRectifyMap(camera_params.calibration['mtx'],
-    #                                       camera_params.calibration['dist'],
-    #                                       None,
-    #                                       camera_params.calibration['mtx'],
-    #                                       warp_shape,
-    #                                       cv2.CV_32FC1)
-    #    warp_shape_0 = warp_shape
+    if not 'warp_shape_0' in globals() or warp_shape_0 != warp_shape:
+        umap = cv2.initUndistortRectifyMap(camera_params.calibration['mtx'],
+                                            camera_params.calibration['dist'],
+                                            None,
+                                            camera_params.calibration['mtx'],
+                                            warp_shape,
+                                            cv2.CV_32FC1)
+        warp_shape_0 = warp_shape
     directory, file = os.path.split(_file)
     o_file = os.path.join(out_dir, file)
     #### o_file = _file.replace('.jpg', '_.jpg')
@@ -281,18 +290,18 @@ def doGetArrowsAndTexts(_file,
     # if (True):
 
     try:
-        # und = cv2.undistort(grey, camera_params.calibration['mtx'], camera_params.calibration['dist'])
-        # warped = cv2.warpPerspective(und,
-        #                              camera_params.perspectiveTransform,
-        #                              warp_shape,
-        #                              flags=cv2.INTER_LINEAR)
-        warped = grey
+        und = cv2.undistort(grey, camera_params.calibration['mtx'], camera_params.calibration['dist'])
+        warped = cv2.warpPerspective(und,
+                                     camera_params.perspectiveTransform,
+                                     warp_shape,
+                                     flags=cv2.INTER_LINEAR)
+        #warped = grey
 
         rects = np.zeros(img_in.shape, dtype=np.uint8)
 
-        arrows_result = doGetArrows(img_in, params, warped, sess, rects)
+        arrows_result = doGetArrows(img_in, _file, out_dir + '/arrows', params, warped, sess, rects)
 
-        texts_result = doGetTexts(img_in, params, warped, params.texts_net, rects)
+        texts_result = doGetTexts(img_in, _file, out_dir + '/texts', params, warped, params.texts_net, rects)
 
         result = GetArrowsAndTextsResult(detected_arrows_count=arrows_result.detected_arrows_count,
                                          non_zero_arrows_count=arrows_result.non_zero_arrows_count,
@@ -303,9 +312,9 @@ def doGetArrowsAndTexts(_file,
         #                             camera_params.inversePerspectiveTransform,
         #                             warp_shape,
         #                             flags=cv2.INTER_NEAREST)
-        img_in = img_in | rects
-        cv2.imwrite(o_file, img_in)
-        # print(o_file)
+        # img_in = img_in | rects
+        # cv2.imwrite(o_file, img_in)
+        #print(o_file)
 
         # if mask.any():
         #     mask = cv2.warpPerspective(mask,
@@ -353,7 +362,7 @@ def getArrowsAndTexts(params: GetArrowsAndTextsParams, camera_params, in_dir, ma
         print(" writing arrows to " + arrows_dir)
 
         texts_dir = os.path.join(out_dir, 'texts')
-        for sub_dir in params.textsNet.get_class_names():
+        for sub_dir in params.texts_net.get_class_names():
             try:
                 os.makedirs(os.path.join(texts_dir, sub_dir))
             except:
@@ -383,26 +392,32 @@ def getArrowsAndTexts(params: GetArrowsAndTextsParams, camera_params, in_dir, ma
     start_time = time.time()
 
     with tf.Session(graph=params.arrowsNet, config=config) as sess:
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=None) as executor:
             for _file in im_files:
                 future = executor.submit(doGetArrowsAndTexts, _file, out_dir, camera_params, params, sess)
                 futures.add(future)
 
             total_count = len(futures)
-            detected_count = 0
-            non_zero_count = 0
+            detected_arrows_count = 0
+            non_zero_arrows_count = 0
+            detected_texts_count = 0
+            non_zero_texts_count = 0
             while futures:
                 done, futures = concurrent.futures.wait(futures, timeout=1)
                 if done:
                     for future in done:
                         result = future.result()
-                        detected_count += result.detected_count
-                        non_zero_count += result.non_zero_count
-                    print('> Processed {} of {}, detected {} arrows, non-zero: {}'.format(
+                        detected_arrows_count += result.detected_arrows_count
+                        non_zero_arrows_count += result.non_zero_arrows_count
+                        detected_texts_count += result.detected_texts_count
+                        non_zero_texts_count += result.non_zero_texts_count
+                print('> Processed {} of {}, detected {} arrows, non-zero {}, {} texts, non-zero: {}'.format(
                         total_count - len(futures),
                         total_count,
-                        detected_count,
-                        non_zero_count))
+                        detected_arrows_count,
+                        non_zero_arrows_count,
+                        detected_texts_count,
+                        non_zero_texts_count))
 
     time_spent = time.time() - start_time
     print('Time spent: {:.03f} seconds'.format(time_spent))
@@ -513,8 +528,8 @@ if __name__ == "__main__":
 
     textsCascadeClassifierPath = parameters_dir + 'cTxt_16x24_1_60_s06.xml'
 
-    textsNet = Classifier.Classifier(model_file_path=parameters_dir + 'texts.model.h5',
-                                     category_to_id_mapping_file_path='')
+    texts_net = Classifier.Classifier(model_file_path=parameters_dir + 'text.model.h5',
+                                     category_to_id_mapping_file_path=parameters_dir +  'text.classes.bin')
 
     inp = arrowsNet.get_tensor_by_name('input_image:0')
     keep_prob = arrowsNet.get_tensor_by_name('keep_prob:0')
@@ -528,7 +543,7 @@ if __name__ == "__main__":
                                                 out=out,
                                                 arrow_types=arrow_types,
                                                 textsCascadeClassifierPath=textsCascadeClassifierPath,
-                                                textsNet=textsNet)
+                                                texts_net=texts_net)
 
     ############################################################################
 
@@ -544,7 +559,12 @@ if __name__ == "__main__":
     #          'C:\\src\\argus_cam_data\\argus_cam_0\\Xroad',
     #          'C:\\src\\argus_cam_data\\argus_cam_0\\suspicious_update')
 
-    # getArrows(get_arrows_params, camera_params, 'D:\\argus_cam_data\\argus_cam_0', 'D:\\argus_cam_data\\argus_cam_0\\out_001_arr')
+    # params: GetArrowsAndTextsParams, camera_params, in_dir, mask_dir, out_dir="", start=0, end=-1
+    getArrowsAndTexts(get_arrows_params, camera_params1, 
+                        '/media/nvidia/ssd/201902_USA/20190215_140759/argus_cam_1/data',  
+                        '/media/nvidia/ssd/201902_USA/20190215_140759/argus_cam_1/Xroad',  
+                        '/media/nvidia/ssd/201902_USA/20190215_140759/argus_cam_1/arr_and_text',
+                        1600, None)
     # getArrows(get_arrows_params, camera_params, 'D:\\argus_cam_data\\argus_cam_1', 'D:\\argus_cam_data\\argus_cam_1\\out_111_arr')
     # getArrows(get_arrows_params, camera_params, 'D:\\argus_cam_data\\argus_cam_2', 'D:\\argus_cam_data\\argus_cam_2\\out_221_arr')
 
