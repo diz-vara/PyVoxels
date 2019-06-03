@@ -20,7 +20,7 @@ import sys
 from read_ontology import read_ontology
 
 import argparse
-
+from datetime import datetime
 
 
 
@@ -42,20 +42,14 @@ def _parse_function(filename):
 base_dir = '/media/avarfolomeev/storage/Data/'
 
 try:
-    base_dir = os.environ['BASE_DATA_PATH']
+    base_dir = os.environ['BASE_DATA_DIR']
 except:
     pass
         
 
-input_folder = base_dir + '/Voxels/201904_UK/'
-put_folder = base_dir + '/Voxels/201904_UK/o/'
-dataname = 'data/'
-ride = '20190403_064438'  #'20190216_115220'
-camera = 'argus_cam_0'
 ontology, _ = read_ontology(base_dir+'/Segmentation/UK/1375272-ontology.csv')
 
 
-image_shape= (768,960) # (1024,1216)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', type=str, default= base_dir + '/Segmentation/UK/nets/BiSeNet_ResNet101/0290/', required=False, help='The path to the latest checkpoint weights for your model.')
@@ -63,19 +57,24 @@ parser.add_argument('--dataset', type=str, default= base_dir + "/Voxels/201904_U
 parser.add_argument('--output', type=str, default=base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
 parser.add_argument('--ride', type=str, default="20190403_064438", required=False, help='ride name')
 parser.add_argument('--camera',type=str, default="argus_cam_0", required=False, help='camera name')
+parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width')
+parser.add_argument('--crop_height',type=int, default=768, required=False, help='crop height')
+
 parser.add_argument('--start',type=int, default=0, required=False, help='start from')
 parser.add_argument('--end',type=int, default=None, required=False, help='process to')
 
 args = parser.parse_args()
 
+image_shape= (args.crop_height,args.crop_width) # (1024,1216)
 
 input_folder = args.dataset;
 out_folder = args.output;
 load_net = args.checkpoint_path+'model.ckpt'
 
-data_folder = os.path.join(input_folder,ride, camera)
-camera_folder = os.path.join(out_folder,ride,camera)
+data_folder = os.path.join(input_folder,args.ride, args.camera)
+camera_folder = os.path.join(out_folder,args.ride,args.camera)
 
+dataname = 'data/'
 road_name = 'Xroad/'
 overlay_name = 'Xoverlay/'
 
@@ -159,8 +158,16 @@ print ("Using net ", load_net)
 
 meta = load_net + '.meta'
 
+net_name, cp_num = os.path.split(args.checkpoint_path)
+net_name = os.path.split(net_name)[-1] + '_' + cp_num;
 
-csvname = os.path.join(out_folder, ride, ride + "_" + camera + ".csv")
+time_string = datetime.now().strftime("%Y%m%d_%H%M%S");
+
+with open(os.path.join(camera_folder, road_name, "segm.txt"),'a') as seg_file :
+    seg_file.write(time_string + ' ' + net_name + '\n')
+
+
+csvname = os.path.join(out_folder, args.ride, args.ride + "_" + args.camera + ".csv")
 
 one = tf.constant(1.0, dtype = float)
 restorer = tf.train.import_meta_graph(meta, input_map = {'IteratorGetNext:0':images})
@@ -197,6 +204,7 @@ with  open(csvname,"a") as csvfile:
             overlay_im.paste(colors_img,box=None,mask=colors_img)
             
             out_file = names[0].decode('utf-8').replace(dataname,overlay_name).replace(data_folder, camera_folder)
+            out_file = out_file.replace('.jpg','_'+ net_name + '.jpg');
             scipy.misc.imsave(out_file, overlay_im)
     
             for idx in range (len(names)):
