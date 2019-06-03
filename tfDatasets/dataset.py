@@ -154,12 +154,12 @@ if (len(load_net) == 0):
 print ("Using net ", load_net)
 
 meta = load_net + '.meta'
-
+net_name = os.path.split(load_net)[-1]
 
 time_string = datetime.now().strftime("%Y%m%d_%H%M%S");
 
 with open(os.path.join(camera_folder, road_name, "segm.txt"),'a') as seg_file :
-    seg_file.write(time_string + ' ' + os.path.split(load_net)[-1] + '\n')
+    seg_file.write(time_string + ' ' + net_name + '\n')
 
 csvname = os.path.join(out_folder, ride, ride + "_" + camera + ".csv")
 
@@ -216,6 +216,7 @@ with  open(csvname,"a") as csvfile:
             
             
             out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, camera_folder)
+            out_file = out_file.replace('.jpg','_'+ net_name + '.jpg');
             scipy.misc.imsave(out_file, overlay_im)
     
             for idx in range (len(names)):
