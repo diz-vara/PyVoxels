@@ -53,7 +53,7 @@ except:
     pass
         
 
-ontology, _ = read_ontology(base_dir+'/Segmentation/UK/1375272-ontology.csv')
+
 
 
 
@@ -66,10 +66,15 @@ parser.add_argument('--camera',type=str, default="argus_cam_0", required=False, 
 parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width')
 parser.add_argument('--crop_height',type=int, default=768, required=False, help='crop height')
 
+
 parser.add_argument('--start',type=int, default=0, required=False, help='start from')
 parser.add_argument('--end',type=int, default=None, required=False, help='process to')
 
+parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/1375272-ontology.csv', required=False, help='Ontology to assign colours')
+
 args = parser.parse_args()
+
+ontology, _ = read_ontology(args.ontology)
 
 image_shape= (args.crop_height,args.crop_width) # (1024,1216)
 

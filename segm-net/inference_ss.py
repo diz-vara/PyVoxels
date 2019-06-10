@@ -47,9 +47,6 @@ except:
     pass
         
 
-ontology, _ = read_ontology(base_dir+'/Segmentation/UK/1375272-ontology.csv')
-
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', type=str, default= base_dir + '/Segmentation/UK/nets/BiSeNet_ResNet101/0290/', required=False, help='The path to the latest checkpoint weights for your model.')
@@ -63,12 +60,19 @@ parser.add_argument('--crop_height',type=int, default=768, required=False, help=
 parser.add_argument('--start',type=int, default=0, required=False, help='start from')
 parser.add_argument('--end',type=int, default=None, required=False, help='process to')
 
+parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/1375272-ontology.csv', required=False, help='Ontology to assign colours')
+
 args = parser.parse_args()
+
+ontology, _ = read_ontology(args.ontology)
 
 image_shape= (args.crop_height,args.crop_width) # (1024,1216)
 
 input_folder = args.dataset;
 out_folder = args.output;
+
+if (args.checkpoint_path[-1] != '/'):
+    args.checkpoint_path += "/"
 load_net = args.checkpoint_path+'model.ckpt'
 
 data_folder = os.path.join(input_folder,args.ride, args.camera)
@@ -159,7 +163,9 @@ print ("Using net ", load_net)
 meta = load_net + '.meta'
 
 net_name, cp_num = os.path.split(args.checkpoint_path)
-net_name = os.path.split(net_name)[-1] + '_' + cp_num;
+if (len (cp_num) < 2):
+    net_name, cp_num = os.path.split(net_name)
+net_name = os.path.split(os.path.split(net_name)[0])[-1] + '-' + cp_num;
 
 time_string = datetime.now().strftime("%Y%m%d_%H%M%S");
 
