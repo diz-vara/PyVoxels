@@ -104,7 +104,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*3, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*4, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -191,7 +191,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         if (loss < min_loss):
             print("saving at step {:d}".format(epoch))     
             min_loss = loss;
-            saver.save(sess, '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net',
+            saver.save(sess, '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_44c',
                        global_step=epoch)
     
 #tests.test_train_nn(train_nn)
@@ -200,9 +200,8 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 tf.reset_default_graph();
 
 def run():
-    labels = lbl.labels_vox
-    num_classes = 43 #len(labels)
-    image_shape=(960,768)
+    num_classes = 44 #len(labels)
+    image_shape=(768,960)
     data_dir = '/media/avarfolomeev/storage/Data/Segmentation/data'
     runs_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
@@ -226,7 +225,7 @@ def run():
     with tf.Session(config=config) as sess:
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-0and1',
+        get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4',
                                            'train',image_shape, num_classes)
     
     
