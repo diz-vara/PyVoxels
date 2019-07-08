@@ -5,28 +5,26 @@ Spyder Editor
 This is a temporary script file.
 """
 
-import re
-import random
 import numpy as np
 import os.path
 import scipy.misc
-import shutil
-import zipfile
-import time
 import tensorflow as tf
 from glob import glob
 from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox as lbl
-import numpy as np
-import helper
 
-import matplotlib.pyplot as plt
-import sys
 from read_ontology import read_ontology
 
+
+
+base_dir = '/media/avarfolomeev/storage/Data/'
+
+try:
+    base_dir = os.environ['BASE_DATA_PATH']
+except:
+    pass
 
 
 #%%
@@ -54,7 +52,7 @@ dataname = 'data/'
 ride = '20190216_115220'
 camera = 'argus_cam_0'
 
-ontology, _ = read_ontology('/media/nvidia/Data/Segmentation/UK/1375272-ontology.csv')
+ontology, _ = read_ontology(base_dir + '/Segmentation/UK/1375272-ontology.csv')
 
 
 nArg = len(sys.argv)
@@ -146,7 +144,7 @@ image0=original_images[0]
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
 
 if (len(load_net) == 0):
-	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-86"
+	load_net = base_dir + "/Segmentation/UK/nets/OS_net-86"
 
 
 print ("Using net ", load_net)
@@ -181,20 +179,6 @@ with  open(csvname,"a") as csvfile:
 
     while (True):
         try:
-            if (use_subdirs):
-                if (cnt%2000 == 0 or  not 'sub_dir' in locals() or sub_dir is None):
-                    sub_dir = "/{:05d}/".format(cnt-cnt%2000)
-                    try:
-                        os.makedirs(os.path.join(camera_folder,overlay_name + sub_dir))
-                    except:
-                        pass    
-                    try:
-                        os.makedirs(os.path.join(camera_folder,road_name + sub_dir))
-                    except:
-                        pass
-            else:
-                sub_dir = '';
-        
     
             out,names,im0 = sess.run([argmax,filenames,original_images])
             out_colors = colors[out[0,:,:,0]]    
@@ -207,23 +191,19 @@ with  open(csvname,"a") as csvfile:
             
             overlay_im.paste(colors_img,box=None,mask=colors_img)
             
-            
-            out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, camera_folder)
+            out_file = names[0].decode('utf-8').replace(dataname,overlay_name).replace(data_folder, camera_folder)
             scipy.misc.imsave(out_file, overlay_im)
     
             for idx in range (len(names)):
                 
                 im_name = names[idx].decode('utf-8')
-                out_file = im_name.replace(dataname,road_name+sub_dir).replace('.jpg','.png').replace(data_folder, camera_folder)
+                out_file = im_name.replace(dataname,road_name).replace('.jpg','.png').replace(data_folder, camera_folder)
                 out_name = sub_dir + os.path.split(out_file)[1]
                 _str = os.path.split(im_name)[1] + ", " + out_name + '\n'
                 csvfile.write(_str)
                 
                 mx = out[idx,:,:,0]
     
-                if ( 'indexes_0' in globals() and len(indexes_0) >= len(colors)):
-                    mx = indexes_0a[mx]
-
                 original_shape = im0[idx].shape[1::-1]
                 mx = cv2.resize(mx,original_shape, interpolation=cv2.INTER_NEAREST)
 

@@ -121,9 +121,9 @@ labels = lbl_vox.labels_vox
 #ids = [l.id for l in labels]
 
 
-num_classes = 43 #len(labels)
+num_classes = 44 #len(labels)
 
-image_shape=(960,771)
+image_shape=(768,960)
 
 epochs = 5000
 batch_size = 4
@@ -196,7 +196,7 @@ loss = tf.reduce_mean(cross_entropy);
 #                                  learning_rate, num_classes)
 
 
-get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-0and1', 'train',
+get_batches_fn = helper.gen_batch_function('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4', 'train',
                                            image_shape, num_classes)
 
 
