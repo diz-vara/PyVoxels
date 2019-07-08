@@ -63,14 +63,15 @@ parser.add_argument('--dataset', type=str, default= base_dir + "/Voxels/201904_U
 parser.add_argument('--output', type=str, default=base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
 parser.add_argument('--ride', type=str, default="20190403_064438", required=False, help='ride name')
 parser.add_argument('--camera',type=str, default="argus_cam_0", required=False, help='camera name')
-parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width')
-parser.add_argument('--crop_height',type=int, default=768, required=False, help='crop height')
+parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width [960]')
+parser.add_argument('--crop_height',type=int, default=768, required=False, help='crop height [768]')
 
 
-parser.add_argument('--start',type=int, default=0, required=False, help='start from')
-parser.add_argument('--end',type=int, default=None, required=False, help='process to')
+parser.add_argument('--start',type=int, default=0, required=False, help='start from [0]')
+parser.add_argument('--end',type=int, default=None, required=False, help='process to [-1]')
 
 parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/1375272-ontology.csv', required=False, help='Ontology to assign colours')
+parser.add_argument('--batchsize',type=int, default=5, required=False, help='batch size [5]')
 
 args = parser.parse_args()
 
@@ -125,15 +126,12 @@ num_classes = len(ontology)
 alfa = (127,) #semi-transparent
 colors = np.array([ont.color + alfa for ont in ontology]).astype(np.uint8)
 #%%
-batchsize = 5
-
-
 
 tf.reset_default_graph();
 
 dataset = tf.data.Dataset.from_tensor_slices((l))
 dataset = dataset.map(_parse_function)
-batch_dataset = dataset.batch(batchsize)
+batch_dataset = dataset.batch(args.batchsize)
 
     
 iterator = batch_dataset.make_one_shot_iterator()

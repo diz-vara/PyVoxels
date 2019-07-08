@@ -61,6 +61,7 @@ parser.add_argument('--start',type=int, default=0, required=False, help='start f
 parser.add_argument('--end',type=int, default=None, required=False, help='process to')
 
 parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/1375272-ontology.csv', required=False, help='Ontology to assign colours')
+parser.add_argument('--batchsize',type=int, default=5, required=False, help='batch size [5]')
 
 args = parser.parse_args()
 
@@ -140,15 +141,12 @@ num_classes = len(ontology)
 alfa = (127,) #semi-transparent
 colors = np.array([ont.color + alfa for ont in ontology]).astype(np.uint8)
 #%%
-batchsize = 5
-
-
 
 tf.reset_default_graph();
 
 dataset = tf.data.Dataset.from_tensor_slices((l))
 dataset = dataset.map(_parse_function)
-batch_dataset = dataset.batch(batchsize)
+batch_dataset = dataset.batch(args.batchsize)
 
     
 iterator = batch_dataset.make_one_shot_iterator()
