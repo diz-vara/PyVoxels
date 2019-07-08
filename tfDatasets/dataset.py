@@ -17,6 +17,7 @@ import cv2
 
 from read_ontology import read_ontology
 
+from datetime import datetime
 
 
 base_dir = '/media/avarfolomeev/storage/Data/'
@@ -46,7 +47,7 @@ base_dir = '/media/nvidia/'
 data_folder= base_dir + '/8Tb/201902_USA/out'
 out_folder = base_dir + '/ssd/Voxels'
 
-image_shape= (1024,1216)
+image_shape= (768,960) #(1024,1216)
 dataname = 'data/'
 
 ride = '20190216_115220'
@@ -115,6 +116,7 @@ print("writing to ", os.path.join(camera_folder, road_name));
 labels = lbl.labels_vox
 num_classes = len(ontology)
 
+
 alfa = (127,) #semi-transparent
 colors = np.array([ont.color + alfa for ont in ontology]).astype(np.uint8)
 #%%
@@ -144,13 +146,18 @@ image0=original_images[0]
 #load_net = base_dir + 'Data/Segmentation/vox/vox-net-lp-6058'
 
 if (len(load_net) == 0):
-	load_net = base_dir + "/Segmentation/UK/nets/OS_net-86"
+	load_net = base_dir + "Data/Segmentation/UK/nets/OS_net-333"
 
 
 print ("Using net ", load_net)
 
 meta = load_net + '.meta'
+net_name = os.path.split(load_net)[-1]
 
+time_string = datetime.now().strftime("%Y%m%d_%H%M%S");
+
+with open(os.path.join(camera_folder, road_name, "segm.txt"),'a') as seg_file :
+    seg_file.write(time_string + ' ' + net_name + '\n')
 
 csvname = os.path.join(out_folder, ride, ride + "_" + camera + ".csv")
 
@@ -191,7 +198,9 @@ with  open(csvname,"a") as csvfile:
             
             overlay_im.paste(colors_img,box=None,mask=colors_img)
             
-            out_file = names[0].decode('utf-8').replace(dataname,overlay_name).replace(data_folder, camera_folder)
+            
+            out_file = names[0].decode('utf-8').replace(dataname,overlay_name+sub_dir).replace(data_folder, camera_folder)
+            out_file = out_file.replace('.jpg','_'+ net_name + '.jpg');
             scipy.misc.imsave(out_file, overlay_im)
     
             for idx in range (len(names)):
