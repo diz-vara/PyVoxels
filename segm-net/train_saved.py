@@ -19,10 +19,11 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import cv2
-import labels_vox as lbl
 import numpy as np
 import helper
 import sys
+
+from read_ontology import read_ontology
 
 
 #%%
@@ -44,7 +45,7 @@ def train_nn(sess, epochs, batch_size,
     :param learning_rate: TF Placeholder for learning rate
     """
     
-    save_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net';
+    save_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_44c';
     min_loss_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/min_loss.txt';
     lr_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/lr.txt';
     
@@ -91,13 +92,18 @@ def train_nn(sess, epochs, batch_size,
         bnum = 0
         
         cum_loss = 0
+        intersect = np.zeros(num_classes)
+        union = np.zeros(num_classes)
         for image, label in get_val_batches_fn(batch_size):
             image = image[:batch_size]
             label = label[:batch_size]
-            v_summary, val_loss = sess.run([val_summary, cross_entropy_loss],
+            v_summary, val_loss, _intersect, _union = sess.run([val_summary, cross_entropy_loss, t_intersect, t_union],
                                      feed_dict={input_image:image, 
                                                 corr_label:label,
                                                 keep_prob:1, learning_rate:lr})
+            intersect = intersect + _intersect
+            union = union + _union
+
             sys.stdout.write('\rVal ' + str(bnum) + '  ' + str(val_loss) + '   \r')
             sys.stdout.flush()      
             cum_loss += val_loss
@@ -109,13 +115,22 @@ def train_nn(sess, epochs, batch_size,
         writer.add_summary(v_summary, epoch)
         #writer.add_summary(merged, epoch)
         print("\r\nLoss = {:g} {:g}".format(train_loss, val_loss))     
-        print()                
+        print()
+        
+        union[union < 1] = 1
+        IoU = intersect / union
+        
+        #for cls in range(num_classes):
+        #    print(ont[cls].name, IoU[cls])
+        #print()
+
+
 
         # read updated min_loss from the file
         try:
             min_loss = float(open(min_loss_file).read())
         except:
-            0;    
+            pass;    
         
         if (val_loss < min_loss):
             print("saving at step {:d}".format(epoch+base))     
@@ -124,8 +139,12 @@ def train_nn(sess, epochs, batch_size,
                        global_step=epoch+base)
             #save empty file with loss value           
             fn =  save_net + '-' + str(epoch+base) + '.' + str(val_loss)
-            f = open(fn,"wb")
-            f.close()
+            with open(fn,"w") as f:
+                for cls in range(num_classes):
+                    f.write("%15.15s, %.2f\n" % (ont[cls].name, IoU[cls]) )
+                    
+
+                                        
             open(min_loss_file,'w').write(str(min_loss))
            
             
@@ -134,7 +153,7 @@ def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
     try:
         _base_dir = open(_dataset_descriptor,'rt').readline().rstrip('\n')
     except:    
-        _base_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/UK-0and1'
+        _base_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4'
     
     
     _fn = helper.gen_batch_function(_base_dir,
@@ -153,16 +172,15 @@ dataset_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/dataset.txt'
 timestamp = time.strftime("%Y%m%d_%H%M%S");
 
 
-labels = lbl.labels_vox
-num_classes = 43 #len(labels)
+ont, colors = read_ontology('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4/Ontology F8.csv')
+num_classes = len(ont)
 image_shape=(768,960)
 
 epochs = 5000
-batch_size = 3
+batch_size = 4
 
 
 alfa = (127,) #semi-transparent
-colors = np.array([label.color + alfa for label in labels]).astype(np.uint8)
 
 config = tf.ConfigProto(
    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.95),
@@ -172,7 +190,7 @@ sess = tf.Session(config = config)
 
 #saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_net-770'
+load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_44c-1006'
 
 min_loss_name = 'min_loss.txt'
 
@@ -198,15 +216,30 @@ class_filter = tf.squeeze(tf.where(tf.not_equal(labels0,1)),1)
 
 
 logits = tf.reshape(nn_output,(-1,num_classes))
-#print(labels0.get_shape(), logits.get_shape())
+
+#print(correct_label.get_shape(), nn_output.get_shape())
+
 
 gt = tf.gather(labels,class_filter)
 prediction = tf.gather(logits,class_filter)
+
+#print(gt.get_shape(), prediction.get_shape())
+
 
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=gt,
                                                         logits = prediction,
                                                         name = "cross-ent")
 cross_entropy_loss = tf.reduce_mean(cross_entropy);
+
+y_true = tf.math.argmax(gt,axis=-1)
+y_pred = tf.math.argmax(prediction , axis=-1)
+
+conf_matrix = tf.confusion_matrix(y_true, y_pred, num_classes)
+sum_true = tf.reduce_sum(conf_matrix,axis=0)
+sum_pred = tf.reduce_sum(conf_matrix, axis = 1)
+t_intersect = tf.diag_part(conf_matrix)
+t_union = sum_true + sum_pred - t_intersect
+
 
 #tf.summary.scalar('cross_entropy', cross_entropy)
 train_summary = tf.summary.scalar('train_loss', cross_entropy_loss)
@@ -228,7 +261,7 @@ print('training')
 train_nn(sess, epochs, batch_size, 
          dataset_file, image_shape, num_classes,
          train_op,
-         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 771) 
+         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 1007) 
 
 
 
