@@ -5,190 +5,80 @@ Created on Wed Dec 27 16:12:51 2017
 @author: avarfolomeev
 """
 
-import re
-import random
 import numpy as np
 import os.path
-import scipy.misc
-import shutil
-import zipfile
 import time
 import tensorflow as tf
-from glob import glob
-from urllib.request import urlretrieve
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import cv2
 import numpy as np
-import helper
 import sys
 
 from read_ontology import read_ontology
+from train import *
+
+import argparse
 
 
-#%%
-def train_nn(sess, epochs, batch_size, 
-             dataset_file, image_shape, num_classes,
-             train_op, cross_entropy_loss, input_image,
-             corr_label, keep_prob, learning_rate, base = 0):
-    """
-    Train neural network and print out the loss during training.
-    :param sess: TF Session
-    :param epochs: Number of epochs
-    :param batch_size: Batch size
-    :param get_batches_fn: Function to get batches of training data.  Call using get_batches_fn(batch_size)
-    :param train_op: TF Operation to train the neural network
-    :param cross_entropy_loss: TF Tensor for the amount of loss
-    :param input_image: TF Placeholder for input images
-    :param correct_label: TF Placeholder for label images
-    :param keep_prob: TF Placeholder for dropout keep probability
-    :param learning_rate: TF Placeholder for learning rate
-    """
-    
-    save_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_44c';
-    min_loss_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/min_loss.txt';
-    lr_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/lr.txt';
-    
-    #sess.run(tf.global_variables_initializer())
-    #saver = tf.train.Saver();
+base_dir = '/media/avarfolomeev/storage/Data/'
 
-    #lr = sess.run(learning_rate)
-    merged = tf.summary.merge_all()
-    lr = 1.e-4
-    min_loss = 0.4
+try:
+    base_dir = os.environ['BASE_DATA_PATH']
+except:
+    pass
 
-    sess.run(tf.local_variables_initializer())
-
-    for epoch in range (epochs):
-        print ('epoch {} ({}) '.format(epoch+base, epoch))
-        sys.stdout.flush()
-        
-        get_train_batches_fn = build_batch_fn(dataset_file, 'train',
-                                              image_shape, num_classes);
-        
-        get_val_batches_fn = build_batch_fn(dataset_file, 'val',
-                                              image_shape, num_classes);
-        bnum = 0
-        #read updated lr from the file
-        try:
-            lr = float(open(lr_file).read())
-        except:
-            0;    
-        _lr = lr #* 0.9965                     
-        print(" LR = {:g}".format(lr))
-        open(lr_file,'w').write(str(_lr))
-        cum_loss = 0
-        for image, label in get_train_batches_fn(batch_size):
-            image = image[:batch_size]
-            label = label[:batch_size]
-
-            _ = sess.run(conf_matrix, feed_dict={input_image:image, 
-                                                 corr_label:label,
-                                                 keep_prob:0.5})
-
-            t_summary, train_loss, _ = sess.run([train_summary, cross_entropy_loss, train_op],
-                                     feed_dict={input_image:image,
-                                                learning_rate:lr, 
-                                                corr_label:label, 
-                                                keep_prob:0.5})
-
-            cum_loss += train_loss
-            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + '   \r')
-            sys.stdout.flush()      
-            bnum = bnum + 1  
-        train_loss = cum_loss / bnum
-        sys.stdout.write("\r\nTrain loss: " + str(train_loss) + '\r\n')
-        sys.stdout.flush()      
-        bnum = 0
-        
-        cum_loss = 0
-        intersect = np.zeros(num_classes)
-        union = np.zeros(num_classes)
-        for image, label in get_val_batches_fn(batch_size):
-            image = image[:batch_size]
-            label = label[:batch_size]
-            v_summary, _intersect, _union = sess.run([val_summary, t_intersect, t_union],
-                                     feed_dict={input_image:image, 
-                                                corr_label:label,
-                                                keep_prob:1, learning_rate:lr})
-            val_loss = sess.run(cross_entropy_loss)
-            intersect = intersect + _intersect
-            union = union + _union
-
-            sys.stdout.write('\rVal ' + str(bnum) + '  ' + str(val_loss) + '   \r')
-            sys.stdout.flush()      
-            cum_loss += val_loss
-            bnum = bnum + 1    
-               
-        val_loss = cum_loss / bnum
-        
-        writer.add_summary(t_summary, epoch)
-        writer.add_summary(v_summary, epoch)
-        #writer.add_summary(merged, epoch)
-        print("\r\nLoss = {:g} {:g}".format(train_loss, val_loss))     
-        print()
-        
-        union[union < 1] = 1
-        IoU = intersect / union
-        
-        #for cls in range(num_classes):
-        #    print(ont[cls].name, IoU[cls])
-        #print()
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 
-        # read updated min_loss from the file
-        try:
-            min_loss = float(open(min_loss_file).read())
-        except:
-            pass;    
-        
-        if (val_loss < min_loss):
-            print("saving at step {:d}".format(epoch+base))     
-            min_loss = val_loss;
-            saver.save(sess, save_net,
-                       global_step=epoch+base)
-            #save empty file with loss value           
-            fn =  save_net + '-' + str(epoch+base) + '.' + str(val_loss)
-            with open(fn,"w") as f:
-                for cls in range(num_classes):
-                    f.write("%15.15s, %.2f\n" % (ont[cls].name, IoU[cls]) )
-                    
+parser = argparse.ArgumentParser()
+parser.add_argument('--num_epochs', type=int, default=300, help='Number of epochs to train for')
+parser.add_argument('--epoch_start_i', type=int, default=0, help='Start counting epochs from this number')
+parser.add_argument('--checkpoint_step', type=int, default=10, help='How often to save checkpoints (epochs)')
+parser.add_argument('--continue_training', type=str2bool, default='no', help='Whether to continue training from a checkpoint')
+parser.add_argument('--dataset', type=str, default="UK-4", help='Dataset you are using.')
+parser.add_argument('--crop_height', type=int, default=768, help='Height of cropped input image to network')
+parser.add_argument('--crop_width', type=int, default=960, help='Width of cropped input image to network')
+parser.add_argument('--batch_size', type=int, default=2, help='Number of images in each batch')
+parser.add_argument('--model_name', type=str, default="OS-44-new", help='Model name')
+parser.add_argument('--checkpoint_num', type=int, default=0, help='checkpoint num to load')
+parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate')
+parser.add_argument('--prefix', type=str, default="", help='optional prefix to separate n/w')
+parser.add_argument('--suffix', type=str, default="", help='optional suffix to separate n/w')
+args = parser.parse_args()
 
-                                        
-            open(min_loss_file,'w').write(str(min_loss))
-           
-            
-#%%
-def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
-    try:
-        _base_dir = open(_dataset_descriptor,'rt').readline().rstrip('\n')
-    except:    
-        _base_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4'
-    
-    
-    _fn = helper.gen_batch_function(_base_dir,
-                                   _split,_image_shape, _num_classes)
-    return (_fn)
 
-            
-            
+
 #%%
 
 #def retrain():
     
 tf.reset_default_graph()
 
-dataset_file = '/media/avarfolomeev/storage/Data/Segmentation/UK/dataset.txt'
 timestamp = time.strftime("%Y%m%d_%H%M%S");
 
 
-ont, colors = read_ontology('/media/avarfolomeev/storage/Data/Segmentation/UK/UK-4/Ontology F8.csv')
-num_classes = len(ont)
-image_shape=(768,960)
+ontology, colors = read_ontology(args.dataset + '/Ontology.csv')
 
-epochs = 5000
-batch_size = 4
+num_classes = len(ontology)
+
+image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
+
+#full_model_name = args.prefix + args.model_name + "_" + str(args.crop_width) + "x" + str(args.crop_height) + args.suffix;
+full_model_name = args.prefix + args.model_name + args.suffix;
+model_path = args.dataset + '/nets/' + full_model_name;
+
+
+lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
+open(lr_file,'w').write(str(args.learning_rate))
+
+
+epochs = args.num_epochs
+batch_size = args.batch_size
 
 
 alfa = (127,) #semi-transparent
@@ -198,16 +88,15 @@ config = tf.ConfigProto(
    device_count = {'GPU': 1}
 )
 sess = tf.Session(config = config)
-sess.run(tf.global_variables_initializer())
 
-#saver = tf.train.Saver()
 
-load_net = '/media/avarfolomeev/storage/Data/Segmentation/UK/nets/OS_44c-1006'
+
+
+load_net = model_path + '-' + str(args.checkpoint_num)
 
 min_loss_name = 'min_loss.txt'
 
 saver = tf.train.import_meta_graph(load_net + '.meta')
-saver.restore(sess,load_net)
 
 
 model = tf.get_default_graph()
@@ -218,58 +107,32 @@ nn_output = model.get_tensor_by_name('layer3_up/BiasAdd:0')
 correct_label = model.get_tensor_by_name('correct_label:0')
 learning_rate = model.get_tensor_by_name('learning_rate:0')
 
+assert(nn_output.shape[-1] == len(ontology))
 
-assert(nn_output.shape[-1] == num_classes)
-
-labels = tf.reshape(correct_label, [-1,num_classes])
-labels0 = labels[:,0];
-
-class_filter = tf.squeeze(tf.where(tf.not_equal(labels0,1)),1)
+train_op, loss, conf_matrix, miou  = optimize(nn_output, correct_label, 
+                                    learning_rate, num_classes)
 
 
-logits = tf.reshape(nn_output,(-1,num_classes))
 
-#print(correct_label.get_shape(), nn_output.get_shape())
-
-
-gt = tf.gather(labels,class_filter)
-prediction = tf.gather(logits,class_filter)
-
-
-y_true = tf.math.argmax(gt,axis=-1)
-y_pred = tf.math.argmax(prediction , axis=-1)
-
-miou, conf_matrix = tf.metrics.mean_iou(y_true, y_pred, num_classes)
-
-sum_true = tf.reduce_sum(conf_matrix,axis=0)
-sum_pred = tf.reduce_sum(conf_matrix, axis = 1)
-t_intersect = tf.diag_part(conf_matrix)
-t_union = sum_true + sum_pred - t_intersect
-
-cross_entropy_loss = 1. - miou
-
-
-#tf.summary.scalar('cross_entropy', cross_entropy)
-train_summary = tf.summary.scalar('train_loss', cross_entropy_loss)
-val_summary = tf.summary.scalar('val_loss', cross_entropy_loss)
 #tf.summary.scalar('val loss', val_loss)
 lr_summary = tf.summary.scalar('learning_rate', learning_rate)
 
 
-train_op=model.get_collection('train_op')[0]
+sess.run(tf.global_variables_initializer())
+
+print ('Loading ' + load_net)
+
+saver.restore(sess,load_net)
 
 train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
 #train_op = tf.train.GradientDescentOptimizer(learning_rate = learning_rate).minimize(loss, var_list = train_vars)
 #train_op = tf.train.AdamOptimizer(learning_rate = learning_rate).minimize(loss, var_list = train_vars)
 
 
-writer = tf.summary.FileWriter('/media/avarfolomeev/storage/Data/Segmentation/UK/logs')
-
-print('training')
-train_nn(sess, epochs, batch_size, 
-         dataset_file, image_shape, num_classes,
-         train_op,
-         cross_entropy_loss, input_image, correct_label, keep_prob, learning_rate, 2000) 
+train_nn(sess, full_model_name, epochs, batch_size, 
+         args.dataset, image_shape, ontology,
+         train_op, loss, miou, conf_matrix, saver,
+         input_image, correct_label, nn_output, keep_prob, learning_rate, 5000) 
 
 
 
@@ -277,3 +140,4 @@ train_nn(sess, epochs, batch_size,
 #if __name__ == '__main__':
 #    retrain()
            
+

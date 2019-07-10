@@ -96,7 +96,7 @@ def get_image_and_labels_list_D(root_path, mode, image_path, label_path):
     image_mode_dir = os.path.join(root_path, mode, image_path)
     label_mode_dir = os.path.join(root_path, mode, label_path)
     
-    print (image_mode_dir)
+    #print (image_mode_dir)
 
     
     images = os.listdir(os.path.join(image_mode_dir))
@@ -117,14 +117,12 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
     :param image_shape: Tuple - Shape of image
     :return:
     """
-    print("num_classes=",num_classes)
     image_paths, label_paths = get_image_and_labels_list_D(data_folder, 
                                                          split,
                                                          'images',
                                                          'labels')
     
     image_nr = len(image_paths)
-    print("Image Number = ",image_nr)
     one_hot = np.zeros((num_classes, num_classes), np.int32 )
     for i in range(num_classes): 
         one_hot[i,i]=1
@@ -158,9 +156,6 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
                 image_file = image_paths[idx // augmentation_coeff]
                 gt_image_file = label_paths[idx // augmentation_coeff]
 
-                #print(image_file)
-                #print(gt_image_file)
-                
                 image = scipy.misc.imread(image_file);
                 #image = cv2.medianBlur(image,5)
                 gt_image = cv2.imread(gt_image_file,-1) #scipy.misc.imread(gt_image_file)*255;
