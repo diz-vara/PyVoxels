@@ -22,12 +22,10 @@ try:
     base_dir = os.environ['BASE_DATA_PATH']
 except:
     pass
-
-
 #%%
 def train_nn(sess, net_name, epochs, batch_size, 
              dataset_dir, image_shape, ontology,
-             train_op, loss, miou, conf_matrix,
+             train_op, loss, conf_matrix, n, d,
              saver, 
              input_image, corr_label, nn_output, 
              keep_prob, learning_rate, base = 0):
@@ -73,7 +71,7 @@ def train_nn(sess, net_name, epochs, batch_size,
 
 
     for epoch in range (epochs):
-        sess.run(loss.initializer)
+        
         print ('epoch {} ({}) '.format(epoch+base, epoch))
         sys.stdout.flush()
         
@@ -97,20 +95,19 @@ def train_nn(sess, net_name, epochs, batch_size,
             label = label[:batch_size]
 
 
-            sess.run(tf.local_variables_initializer())
-            sess.run([conf_matrix], feed_dict={input_image:image, 
+            # sess.run(tf.local_variables_initializer())
+            #sess.run(loss.initializer)                                     
+            train_loss, _, t_summary, _n, _d = sess.run([loss, train_op, train_summary, n, d],
+                                     feed_dict={
+                                                 input_image:image, 
                                                  corr_label:label,
-                                                 keep_prob:0.5})
-
-            _miou = sess.run(miou)
-            #sess.run(loss.initializer)
-
-            train_loss, _, t_summary = sess.run([loss, train_op, train_summary],
-                                     feed_dict={ learning_rate:lr})
+                                                 keep_prob:0.5, 
+                                                 learning_rate:lr})
+            
 
 
             cum_loss += train_loss
-            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + ' ' + str(_miou) + '\r')
+            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + ' ' + str(_n) + ' ' + str(_d) + '\r')
             sys.stdout.flush()      
             bnum = bnum + 1  
         train_loss = cum_loss / bnum
@@ -124,11 +121,10 @@ def train_nn(sess, net_name, epochs, batch_size,
         for image, label in get_val_batches_fn(batch_size):
             image = image[:batch_size]
             label = label[:batch_size]
-            v_summary, _intersect, _union = sess.run([val_summary, t_intersect, t_union],
+            val_loss, v_summary, _intersect, _union = sess.run([loss, val_summary, t_intersect, t_union],
                                      feed_dict={input_image:image, 
                                                 corr_label:label,
                                                 keep_prob:1, learning_rate:lr})
-            val_loss = sess.run(loss)
             intersect = intersect + _intersect
             union = union + _union
 
@@ -184,6 +180,70 @@ def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
                                    _split,_image_shape, _num_classes)
     return (_fn)
 
+#%%
+
+def dice_loss(labels, logits, weights = 1.):
+    smooth = tf.constant(1.)
+    epsilon = tf.constant(1e-18)
+
+    l_max = tf.reduce_max(logits, axis = 3, keepdims = True)
+    logits = tf.floor( (logits + epsilon) / l_max) #tf.nn.softmax(logits)
+    labels = tf.cast(labels, tf.float32)
+    numerator = 2. * tf.reduce_sum(labels * logits, axis=[0, 1, 2])
+    denominator = tf.reduce_sum( labels + logits, axis=[0, 1, 2])
+
+    result = (weights * numerator) / (denominator + smooth)
+    
+    #numerator = tf.reduce_sum( weights * numerator)
+    #denominator = tf.reduce_sum(denominator)
+    return 1. - tf.reduce_mean(result), smooth, smooth
+
+def old_dice_loss(labels, logits, weights = 1.):
+    epsilon = tf.constant(1e-12)
+    labels = tf.cast(labels, tf.float32)
+    
+    #logits = tf.nn.softmax(logits)
+    l_max = tf.reduce_max(logits, axis=3, keepdims = True)
+    logits = tf.floor( logits * 10. )
+
+
+
+    
+    numerator = 2. * tf.reduce_sum(labels * logits, axis=[0,1,2])
+    denominator = tf.reduce_sum( labels + logits, axis=[0,1,2])
+
+
+    result  = tf.reduce_mean(numerator / (denominator+epsilon))
+    z = tf.constant(0)
+    n = tf.reduce_mean(numerator)
+    d = tf.reduce_sum(denominator)
+    return  1. - result, tf.shape(logits), n
+
+def generalized_dice_loss(labels, logits):
+
+    smooth = tf.constant(1e-17)
+    shape = tf.TensorShape(logits.shape).as_list()
+    labels = tf.cast(labels,tf.float32)
+    depth = int(shape[-1])
+    #labels = tf.one_hot(labels, depth, dtype=tf.float32)
+    logits = tf.nn.softmax(logits)
+    weights = 1.0 / (tf.reduce_sum(labels, axis=[0,1,2])**2 + 1)
+
+    numerator = tf.reduce_sum(labels * logits, axis=[0,1,2])
+
+
+    #numerator = tf.reduce_sum(numerator)
+
+    denominator = tf.reduce_sum(labels + logits, axis=[0, 1, 2])
+    #denominator = tf.reduce_sum(denominator)
+    score = (numerator + smooth)/(denominator + smooth)
+
+    loss = - tf.log(tf.reduce_mean(score))
+    return loss, tf.reduce_sum(score), tf.reduce_sum(logits)
+
+
+
+
             
 #%%
 def optimize(nn_output, corr_label, learning_rate, num_classes):
@@ -208,28 +268,29 @@ def optimize(nn_output, corr_label, learning_rate, num_classes):
     y_true = tf.math.argmax(gt,axis=-1)
     y_pred = tf.math.argmax(prediction , axis=-1)
 
-    miou, conf_matrix = tf.metrics.mean_iou(y_true, y_pred, num_classes)
-    eps = tf.constant(1e-14, dtype = tf.dtypes.float32 )
-    #one = tf.constant(1, dtype=tf.dtypes.int32)
-    sum_true = tf.reduce_sum(conf_matrix,axis=0)
-    sum_pred = tf.reduce_sum(conf_matrix, axis = 1)
-    t_intersect = tf.cast(tf.diag_part(conf_matrix), tf.dtypes.float32)
-    t_union = tf.cast(sum_true + sum_pred, tf.dtypes.float32) - t_intersect
+    conf_matrix = tf.confusion_matrix(y_true, y_pred, num_classes)
 
-    t_IoU = t_intersect / (t_union + eps)
+    #eps = tf.constant(1e-14, dtype = tf.dtypes.float32 )
+    #one = tf.constant(1, dtype=tf.dtypes.int32)
+    #sum_true = tf.reduce_sum(conf_matrix,axis=0)
+    #sum_pred = tf.reduce_sum(conf_matrix, axis = 1)
+    #t_intersect = tf.cast(tf.diag_part(conf_matrix), tf.dtypes.float32)
+    #t_union = tf.cast(sum_true + sum_pred, tf.dtypes.float32) - t_intersect
+
+    #t_IoU = t_intersect / (t_union + eps)
 
     #miou = tf.reduce_sum(t_IoU) 
 
-    miou_loss = tf.Variable( initial_value = -tf.log (miou+eps), name = 'miou_loss', trainable = True);
+    #miou_loss = tf.Variable( initial_value = -tf.log (miou+eps), name = 'miou_loss', trainable = True);
     
-    loss = miou_loss
+    loss, n, d = dice_loss(corr_label, nn_output)
 
-    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits = logits, name = "cross-ent")
+    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=gt, logits = prediction, name = "cross-ent")
     #loss = tf.reduce_mean(cross_entropy);
     
     optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
 
     train_op = optimizer.minimize(loss, name='train_op')
-    
-    return train_op, loss, conf_matrix, miou
+
+    return train_op, loss, conf_matrix, n, d
          

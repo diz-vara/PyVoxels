@@ -109,7 +109,7 @@ learning_rate = model.get_tensor_by_name('learning_rate:0')
 
 assert(nn_output.shape[-1] == len(ontology))
 
-train_op, loss, conf_matrix, miou  = optimize(nn_output, correct_label, 
+train_op, loss, conf_matrix  = optimize(nn_output, correct_label, 
                                     learning_rate, num_classes)
 
 
@@ -131,7 +131,7 @@ train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
 
 train_nn(sess, full_model_name, epochs, batch_size, 
          args.dataset, image_shape, ontology,
-         train_op, loss, miou, conf_matrix, saver,
+         train_op, loss, conf_matrix, saver,
          input_image, correct_label, nn_output, keep_prob, learning_rate, 5000) 
 
 

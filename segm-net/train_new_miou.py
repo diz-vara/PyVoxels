@@ -189,7 +189,6 @@ def run():
     )
 
     lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
-
     open(lr_file,'w').write(str(args.learning_rate))
 
     with tf.Session(config=config) as sess:
@@ -203,7 +202,7 @@ def run():
         image_in, keep_prob,l3_o, l4_o, l7_o = load_vgg(sess, vgg_path);
         nn_output = layers(l3_o, l4_o, l7_o, num_classes)
     
-        train_op, loss, conf_matrix, miou  = optimize(nn_output, correct_label, 
+        train_op, loss, conf_matrix, n, d,  = optimize(nn_output, correct_label, 
                                           learning_rate, num_classes)
         
         g_vars = tf.global_variables()
@@ -211,7 +210,7 @@ def run():
     
         train_nn(sess, full_model_name, args.epochs, args.batch_size, 
                  args.dataset, image_shape, ontology,
-                 train_op, loss, miou, conf_matrix,
+                 train_op, loss, conf_matrix, n,d,
                  tf.train.Saver(),
                  image_in, correct_label, nn_output,
                  keep_prob, learning_rate)                                          
