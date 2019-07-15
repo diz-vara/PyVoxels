@@ -96,9 +96,6 @@ def get_image_and_labels_list_D(root_path, mode, image_path, label_path):
     image_mode_dir = os.path.join(root_path, mode, image_path)
     label_mode_dir = os.path.join(root_path, mode, label_path)
     
-    #print (image_mode_dir)
-
-    
     images = os.listdir(os.path.join(image_mode_dir))
     for image_file in images:
         label_file = os.path.join(label_mode_dir, 

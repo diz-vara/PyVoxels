@@ -60,7 +60,7 @@ except:
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', type=str, default= base_dir + '/Segmentation/UK/nets/BiSeNet_ResNet101/0290/', required=False, help='The path to the latest checkpoint weights for your model.')
 parser.add_argument('--dataset', type=str, default= base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
-parser.add_argument('--output', type=str, default=base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
+parser.add_argument('--output', type=str, default="", required=False, help='The dataset you are using')
 parser.add_argument('--ride', type=str, default="20190403_064438", required=False, help='ride name')
 parser.add_argument('--camera',type=str, default="argus_cam_0", required=False, help='camera name')
 parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width [960]')
@@ -74,6 +74,9 @@ parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/13
 parser.add_argument('--batchsize',type=int, default=5, required=False, help='batch size [5]')
 
 args = parser.parse_args()
+
+if (len (args.output)< 1):
+    args.output = args.dataset
 
 ontology, _ = read_ontology(args.ontology)
 
