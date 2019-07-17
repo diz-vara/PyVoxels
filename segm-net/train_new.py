@@ -9,6 +9,7 @@ import labels_vox as lbl
 import sys
 
 
+import pickle
 
 from read_ontology import read_ontology
 from train import *
@@ -166,6 +167,9 @@ def run():
 
 
     ontology, colors = read_ontology(args.dataset + '/Ontology.csv')
+
+    class_weights = pickle.load(open(args.dataset + '/../class_weights_44c.p','rb'))
+
     num_classes = len(ontology)
 
     image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
@@ -202,15 +206,20 @@ def run():
         image_in, keep_prob,l3_o, l4_o, l7_o = load_vgg(sess, vgg_path);
         nn_output = layers(l3_o, l4_o, l7_o, num_classes)
     
-        train_op, loss, conf_matrix, n, d,  = optimize(nn_output, correct_label, 
-                                          learning_rate, num_classes)
+        loss, conf_matrix  = optimize(nn_output, correct_label,  #, n, d, 
+                                          learning_rate, num_classes, class_weights)
         
+        optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
+        #optimizer = tf.train.MomentumOptimizer(learning_rate = learning_rate, momentum = 0.8) 
+
+        train_op = optimizer.minimize(loss, name='train_op')
+
         g_vars = tf.global_variables()
         sess.run(tf.global_variables_initializer())
     
         train_nn(sess, full_model_name, args.epochs, args.batch_size, 
                  args.dataset, image_shape, ontology,
-                 train_op, loss, conf_matrix, n,d,
+                 train_op, loss, conf_matrix, #n,d,
                  tf.train.Saver(),
                  image_in, correct_label, nn_output,
                  keep_prob, learning_rate)                                          
