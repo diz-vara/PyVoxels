@@ -80,7 +80,7 @@ def load_vgg(sess, vgg_path):
 #tests.test_load_vgg(load_vgg, tf)
 
 #%%
-def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
+def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classes):
     """
     Create the layers for a fully convolutional network.  Build skip-layers using the vgg layers.
     :param vgg_layer7_out: TF Tensor for VGG Layer 3 output
@@ -137,16 +137,34 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # add upscaled L4                                
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
+    layer3_drop = tf.nn.dropout(layer3_add, keep_prob=keep_prob)
+
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*4, (1,1),
-                                padding = 'same',
-                                kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                activation=tf.nn.relu,
-                                name = 'layer_3_conv1')
+    #layer3_conv = tf.layers.conv2d(layer3_add, l3_depth, (1,1),
+    #                            padding = 'same',
+    #                            kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+    #                            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+    #                            activation=tf.nn.relu,
+    #                            name = 'layer_3_conv1')
+
+    layer3_up1 = tf.layers.conv2d_transpose(layer3_drop, l3_depth, 3,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up1')
+
+
+    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, num_classes, 3,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up2')
+
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 10,
-                                             strides = (8,8),
+    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
+                                             strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -204,9 +222,9 @@ def run():
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')                                       
     
         image_in, keep_prob,l3_o, l4_o, l7_o = load_vgg(sess, vgg_path);
-        nn_output = layers(l3_o, l4_o, l7_o, num_classes)
+        nn_output = layers(l3_o, l4_o, l7_o, keep_prob, num_classes)
     
-        loss, conf_matrix  = optimize(nn_output, correct_label,  #, n, d, 
+        loss, conf_matrix, print_op  = optimize(nn_output, correct_label,  #, n, d, 
                                           learning_rate, num_classes, class_weights)
         
         optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
@@ -219,7 +237,7 @@ def run():
     
         train_nn(sess, full_model_name, args.epochs, args.batch_size, 
                  args.dataset, image_shape, ontology,
-                 train_op, loss, conf_matrix, #n,d,
+                 train_op, loss, conf_matrix, print_op, #n,d,
                  tf.train.Saver(),
                  image_in, correct_label, nn_output,
                  keep_prob, learning_rate)                                          

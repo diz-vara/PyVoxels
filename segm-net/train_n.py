@@ -25,7 +25,7 @@ except:
 #%%
 def train_nn(sess, net_name, epochs, batch_size, 
              dataset_dir, image_shape, ontology,
-             train_op, loss, conf_matrix, print_op, #n, d,
+             train_op, loss, conf_matrix, n, d,
              saver, 
              input_image, corr_label, nn_output, 
              keep_prob, learning_rate, base = 0):
@@ -97,7 +97,7 @@ def train_nn(sess, net_name, epochs, batch_size,
 
             # sess.run(tf.local_variables_initializer())
             #sess.run(loss.initializer)                                     
-            train_loss, _, t_summary = sess.run([loss, train_op, train_summary], #, n, d],
+            train_loss, _, t_summary, _n, _d = sess.run([loss, train_op, train_summary, n, d],
                                      feed_dict={
                                                  input_image:image, 
                                                  corr_label:label,
@@ -107,7 +107,7 @@ def train_nn(sess, net_name, epochs, batch_size,
 
 
             cum_loss += train_loss
-            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + '      \r') # + str(_n) + ' ' + str(_d) + '                         \r')
+            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + ' ' + str(_n) + ' ' + str(_d) + '                         \r')
             sys.stdout.flush()      
             bnum = bnum + 1  
         train_loss = cum_loss / bnum
@@ -181,38 +181,56 @@ def build_batch_fn(_dataset_descriptor, _split, _image_shape, _num_classes):
     return (_fn)
 
 #%%
-def ce_loss(labels, logits, weights = 1.):
-
-    labels = tf.cast(labels, tf.float32)
-    logits = tf.nn.softmax(logits)
-    cross_entropy = tf.reduce_sum(labels * tf.log(logits), axis = 0)
-    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits = logits, name = "cross-ent")
-    loss = tf.reduce_mean(cross_entropy);
-
-    return loss
-
 
 def dice_loss(labels, logits, weights = 1.):
     smooth = tf.constant(1.)
     epsilon = tf.constant(1e-12)
     labels = tf.cast(labels, tf.float32)
-    not_labels = tf.cast(1-labels, tf.float32)
+    
+    #logits = tf.nn.softmax(logits)
+    logits = logits + tf.reduce_max ( logits * -1., axis = 3, keepdims = True)
 
-    prob = tf.nn.softmax(logits)
-    #logits = logits - tf.reduce_min(logits, axis = 3, keep_dims= True)
-    #logits = logits / tf.reduce_max(logits, axis = 3, keep_dims = True) #tf.nn.softmax(logits)
+    l_max = tf.reduce_max(logits, axis = 3, keepdims = True)
+    logits = tf.divide (logits, l_max)
+    
+    l = tf.floor( logits + epsilon ) #tf.nn.softmax(logits)
 
+    numerator = 2. * tf.reduce_sum(labels * l, axis=[0,1,2])
 
-    numerator = 2. * (tf.reduce_sum(labels * prob, axis=[0]) - tf.reduce_sum(not_labels * prob, axis=[0]))
-    denominator = tf.reduce_sum( labels + prob, axis=[0])
-
-    #numerator = tf.reduce_sum(labels * prob , axis=[0]) + tf.reduce_sum(not_labels * (1 - prob), axis=[0])
-    num_classes22 = tf.cast(tf.shape(labels)[-1], tf.float32)
-
+    denominator = tf.reduce_sum( labels + logits, axis=[0,1,2])
     result = (weights * numerator) / (denominator + smooth)
-    zero = tf.constant(0)
-    return 1. - tf.reduce_mean(result) #, zero, zero
 
+    d = tf.reduce_sum(labels + l, axis = [0,1,2])
+    r = (weights * numerator) / (d + smooth)
+
+    rr = tf.reduce_sum(numerator)/ ( tf.reduce_sum(denominator) + epsilon)
+    #numerator = tf.reduce_sum( weights * numerator)
+    #denominator = tf.reduce_sum(denominator)
+    a = tf.shape(l_max)
+    b = tf.shape(logits)
+    return 1. - rr, tf.reduce_sum(numerator), tf.reduce_sum(denominator)
+
+def old_dice_loss(labels, logits, weights = 1.):
+    epsilon = tf.constant(1e-12)
+    labels = tf.cast(labels, tf.float32)
+    
+    #logits = tf.nn.softmax(logits)
+    l_max = tf.reduce_max(logits, axis=3, keepdims = True)
+    logits = tf.floor( logits * 10. )
+
+
+
+    
+    numerator = 2. * tf.reduce_sum(labels * logits, axis=[0,1,2])
+    denominator = tf.reduce_sum( labels + logits, axis=[0,1,2])
+
+    numerator = tf.square(numerator)
+
+    result  = tf.reduce_mean(numerator / (denominator+epsilon))
+    z = tf.constant(0)
+    n = tf.reduce_mean(numerator)
+    d = tf.reduce_sum(denominator)
+    return  1. - result, tf.shape(logits), n
 
 def generalized_dice_loss(labels, logits):
 
@@ -241,7 +259,7 @@ def generalized_dice_loss(labels, logits):
 
             
 #%%
-def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights):
+def optimize(nn_output, corr_label, learning_rate, num_classes):
     """
     Build the TensorFLow loss and optimizer operations.
     :param nn_last_layer: TF Tensor of the last layer in the neural network
@@ -265,13 +283,23 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights):
 
     conf_matrix = tf.confusion_matrix(y_true, y_pred, num_classes)
 
-    print_op = tf.print( tf.reduce_min(logits), tf.reduce_max(logits))
+    #eps = tf.constant(1e-14, dtype = tf.dtypes.float32 )
+    #one = tf.constant(1, dtype=tf.dtypes.int32)
+    #sum_true = tf.reduce_sum(conf_matrix,axis=0)
+    #sum_pred = tf.reduce_sum(conf_matrix, axis = 1)
+    #t_intersect = tf.cast(tf.diag_part(conf_matrix), tf.dtypes.float32)
+    #t_union = tf.cast(sum_true + sum_pred, tf.dtypes.float32) - t_intersect
+
+    #t_IoU = t_intersect / (t_union + eps)
+
+    #miou = tf.reduce_sum(t_IoU) 
+
+    #miou_loss = tf.Variable( initial_value = -tf.log (miou+eps), name = 'miou_loss', trainable = True);
     
-    loss = dice_loss(gt, prediction, class_weights) #,n,d
-    #ce = ce_loss(labels, logits, class_weights) #,n,d
+    loss, n, d = dice_loss(corr_label, nn_output)
 
-    #loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
-    #loss = tf.reduce_mean(loss)
+    #cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=gt, logits = prediction, name = "cross-ent")
+    #loss = tf.reduce_mean(cross_entropy);
 
-    return loss, conf_matrix, print_op #, n, d
+    return loss, conf_matrix, n, d
          
