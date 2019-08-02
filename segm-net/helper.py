@@ -147,74 +147,79 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
             images = []
             gt_images = []
             for i in range(batch_i,batch_i+batch_size):
-                if ( i >= total_nr):
-                    i = i - total_nr; #cycle in case of overflow
-                idx = indexes[i]
-                image_file = image_paths[idx // augmentation_coeff]
-                gt_image_file = label_paths[idx // augmentation_coeff]
+                try:
+                    if ( i >= total_nr):
+                        i = i - total_nr; #cycle in case of overflow
+                    idx = indexes[i]
+                    image_file = image_paths[idx // augmentation_coeff]
+                    gt_image_file = label_paths[idx // augmentation_coeff]
 
-                image = scipy.misc.imread(image_file);
-                #image = cv2.medianBlur(image,5)
-                gt_image = cv2.imread(gt_image_file,-1) #scipy.misc.imread(gt_image_file)*255;
-                if (len(gt_image.shape) > 2 and gt_image.shape[2] > 1):
-                    gt_image = gt_image[:,:,2]  #only red channel for F8 labels
-                
-                assert(image.shape[:2] == gt_image.shape[:2])                
-    
-                old_shape = image.shape
-                min_scale = 0.8 # np.max((1.,old_shape[1]/(image_shape[1]*2)) )
-                max_scale = 1.2 #np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
-                scale = np.random.uniform(min_scale, max_scale) 
-
-                image=cv2.resize(image, dsize=None,fx=1./scale, fy=1./scale)
-                gt_image=cv2.resize(gt_image, dsize=None,fx=1./scale, fy=1./scale,
-                                    interpolation=cv2.INTER_NEAREST)
-
-
-                col_sum = np.array([image[:,i,:].sum() for i in range(image.shape[1])])
-                row_sum = np.array([image[i,:,:].sum() for i in range(image.shape[0])])
-                col_pad = np.argmax(col_sum == 0)
-                row_pad = np.argmax(row_sum == 0)
-                
-                max_x_shift = max(0,col_pad-image_shape[1])
-                max_y_shift = max(0,row_pad-image_shape[0])
-                
-                x_shift = int(np.random.uniform(0,max_x_shift))
-                y_shift = int(np.random.uniform(0,max_y_shift))
-                
-                cropped = image[y_shift:y_shift+image_shape[0], 
-                                x_shift:x_shift+image_shape[1], :]
-
-                gamma = np.random.rand() + 0.5 #0.5 .... 1.5
-                shift = (np.random.rand() - 0.5 ) / 2
-                table = build_lut(gamma, shift)
-                
-                cropped = cv2.LUT(cropped, table)
-                #red channel random adjustment
-                #cropped[:,:,2] = (cropped[:,:,2]*np.random.uniform(0.9,1)).astype(np.uint8)
-                #cropped[:,:,0] *= np.random.uniform(0.9,1)
-                
-                gt_cropped = gt_image[y_shift:y_shift+image_shape[0], 
-                                x_shift:x_shift+image_shape[1]]
-
-                #augmentation - mirroring
-                if (np.random.rand() > 0.5):
-                    cropped = np.fliplr(cropped)
-                    gt_cropped = np.fliplr(gt_cropped)
+                    image = scipy.misc.imread(image_file);
+                    #image = cv2.medianBlur(image,5)
+                    gt_image = cv2.imread(gt_image_file,-1) #scipy.misc.imread(gt_image_file)*255;
+                    if (len(gt_image.shape) > 2 and gt_image.shape[2] > 1):
+                        gt_image = gt_image[:,:,2]  #only red channel for F8 labels
                     
-    
-                gt_cropped[gt_cropped >= num_classes] = 0
-                gt_cropped[gt_cropped <  0] = 0
-                
-    
-    
-                onehot_label = one_hot[gt_cropped]
-    
-                #print(image.shape, gt_image.shape)
-    
-                images.append(cropped)
-                gt_images.append(onehot_label)
-                
+                    assert(image.shape[:2] == gt_image.shape[:2])                
+        
+                    old_shape = image.shape
+                    min_scale = 0.8 # np.max((1.,old_shape[1]/(image_shape[1]*2)) )
+                    max_scale = 1.2 #np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
+                    scale = np.random.uniform(min_scale, max_scale) 
+
+                    image=cv2.resize(image, dsize=None,fx=1./scale, fy=1./scale)
+                    gt_image=cv2.resize(gt_image, dsize=None,fx=1./scale, fy=1./scale,
+                                        interpolation=cv2.INTER_NEAREST)
+
+
+                    col_sum = np.array([image[:,i,:].sum() for i in range(image.shape[1])])
+                    row_sum = np.array([image[i,:,:].sum() for i in range(image.shape[0])])
+                    col_pad = np.argmax(col_sum == 0)
+                    row_pad = np.argmax(row_sum == 0)
+                    
+                    max_x_shift = max(0,col_pad-image_shape[1])
+                    max_y_shift = max(0,row_pad-image_shape[0])
+                    
+                    x_shift = int(np.random.uniform(0,max_x_shift))
+                    y_shift = int(np.random.uniform(0,max_y_shift))
+                    
+                    cropped = image[y_shift:y_shift+image_shape[0], 
+                                    x_shift:x_shift+image_shape[1], :]
+
+                    gamma = np.random.rand() + 0.5 #0.5 .... 1.5
+                    shift = (np.random.rand() - 0.5 ) / 2
+                    table = build_lut(gamma, shift)
+                    
+                    cropped = cv2.LUT(cropped, table)
+                    #red channel random adjustment
+                    #cropped[:,:,2] = (cropped[:,:,2]*np.random.uniform(0.9,1)).astype(np.uint8)
+                    #cropped[:,:,0] *= np.random.uniform(0.9,1)
+                    
+                    gt_cropped = gt_image[y_shift:y_shift+image_shape[0], 
+                                    x_shift:x_shift+image_shape[1]]
+
+                    #augmentation - mirroring
+                    if (np.random.rand() > 0.5):
+                        cropped = np.fliplr(cropped)
+                        gt_cropped = np.fliplr(gt_cropped)
+                        
+        
+                    gt_cropped[gt_cropped >= num_classes] = 0
+                    gt_cropped[gt_cropped <  0] = 0
+                    
+        
+        
+                    onehot_label = one_hot[gt_cropped]
+        
+                    #print(image.shape, gt_image.shape)
+        
+                    images.append(cropped)
+                    gt_images.append(onehot_label)
+                except:
+                    print ("Sizes differ in ", image_file)
+                    print (image.shape[:2] == gt_image.shape[:2])
+                    i = i -1
+                    pass
     
             yield np.array(images), np.array(gt_images)
     return get_batches_fn

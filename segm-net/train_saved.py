@@ -50,6 +50,8 @@ parser.add_argument('--checkpoint_num', type=int, default=0, help='checkpoint nu
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate')
 parser.add_argument('--prefix', type=str, default="", help='optional prefix to separate n/w')
 parser.add_argument('--suffix', type=str, default="", help='optional suffix to separate n/w')
+parser.add_argument('--loss', type=str, default="crossentropy", help='Loss function [crossentropy]')
+
 args = parser.parse_args()
 
 
@@ -78,11 +80,6 @@ model_path = args.dataset + '/nets/' + full_model_name;
 
 lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
 open(lr_file,'w').write(str(args.learning_rate))
-
-
-epochs = args.num_epochs
-batch_size = args.batch_size
-
 
 alfa = (127,) #semi-transparent
 
@@ -113,8 +110,8 @@ learning_rate = model.get_tensor_by_name('learning_rate:0')
 assert(nn_output.shape[-1] == len(ontology))
 
 
-loss, conf_matrix  = optimize(nn_output, correct_label, 
-                                    learning_rate, num_classes, class_weights)
+loss, conf_matrix, print_op  = optimize(nn_output, correct_label, 
+                                    learning_rate, num_classes, class_weights, args.loss)
 
 
 
@@ -134,11 +131,12 @@ train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,'layer3')
 
 train_op=model.get_collection('train_op')[0]
 
-train_nn(sess, full_model_name, epochs, batch_size, 
+train_nn(sess, full_model_name, args.num_epochs, args.batch_size, 
          args.dataset, image_shape, ontology,
-         train_op, loss, conf_matrix, #n, d, 
+         train_op, loss, conf_matrix, print_op, #n, d, 
          saver,
-         input_image, correct_label, nn_output, keep_prob, learning_rate, args.checkpoint_num + 1) 
+         input_image, correct_label, nn_output, 
+         keep_prob, learning_rate, args.checkpoint_num + 1) 
 
 
 

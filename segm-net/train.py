@@ -203,7 +203,7 @@ def dice_loss(labels, logits, weights = 1.):
     #logits = logits / tf.reduce_max(logits, axis = 3, keep_dims = True) #tf.nn.softmax(logits)
 
 
-    numerator = 2. * (tf.reduce_sum(labels * prob, axis=[0]) - tf.reduce_sum(not_labels * prob, axis=[0]))
+    numerator = 2. * (tf.reduce_sum(labels * prob, axis=[0])) # - tf.reduce_sum(not_labels * prob, axis=[0]))
     denominator = tf.reduce_sum( labels + prob, axis=[0])
 
     #numerator = tf.reduce_sum(labels * prob , axis=[0]) + tf.reduce_sum(not_labels * (1 - prob), axis=[0])
@@ -241,7 +241,7 @@ def generalized_dice_loss(labels, logits):
 
             
 #%%
-def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights):
+def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights, loss_name = 'cross_entropy'):
     """
     Build the TensorFLow loss and optimizer operations.
     :param nn_last_layer: TF Tensor of the last layer in the neural network
@@ -267,11 +267,15 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights):
 
     print_op = tf.print( tf.reduce_min(logits), tf.reduce_max(logits))
     
-    loss = dice_loss(gt, prediction, class_weights) #,n,d
-    #ce = ce_loss(labels, logits, class_weights) #,n,d
+    print ('Using loss = ', loss_name)
+    if (loss_name == 'dice'):
+        loss = dice_loss(gt, prediction, 1.) #class_weights) #,n,d
+    else:
+        loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
+        loss = tf.reduce_mean(loss)
 
-    #loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
-    #loss = tf.reduce_mean(loss)
+
+    #ce = ce_loss(labels, logits, class_weights) #,n,d
 
     return loss, conf_matrix, print_op #, n, d
          

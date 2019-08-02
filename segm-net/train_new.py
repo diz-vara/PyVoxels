@@ -37,6 +37,7 @@ parser.add_argument('--model_name', type=str, default="OS-44-new", help='Model n
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate')
 parser.add_argument('--prefix', type=str, default="", help='optional prefix to separate n/w')
 parser.add_argument('--suffix', type=str, default="", help='optional suffix to separate n/w')
+parser.add_argument('--loss', type=str, default="crossentropy", help='Loss function [crossentropy]')
 args = parser.parse_args()
 
 
@@ -95,6 +96,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
     l4_depth = vgg_layer4_out.shape[3].value
     l7_depth = vgg_layer7_out.shape[3].value
 
+
     layer7_conv = tf.layers.conv2d(vgg_layer7_out, l7_depth, 1,
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -102,8 +104,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name='layer7_conv1')
                                 
+    layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
     # upscale to 10 x 36
-    layer7_up = tf.layers.conv2d_transpose(layer7_conv, l4_depth, 4,
+    layer7_up = tf.layers.conv2d_transpose(layer7_drop, l4_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -124,9 +127,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name = 'layer4_conv1')
 
-    
+    layer4_drop = tf.nn.dropout(layer4_conv, keep_prob=keep_prob)                            
+
+
     # upscale to 20 x 72
-    layer4_up = tf.layers.conv2d_transpose(layer4_conv, l3_depth, 4,
+    layer4_up = tf.layers.conv2d_transpose(layer4_drop, l3_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -137,17 +142,16 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
     # add upscaled L4                                
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
-    layer3_drop = tf.nn.dropout(layer3_add, keep_prob=keep_prob)
 
     # 1x1 convolution of L3 ( 20 x 72)
-    #layer3_conv = tf.layers.conv2d(layer3_add, l3_depth, (1,1),
-    #                            padding = 'same',
-    #                            kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-    #                            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-    #                            activation=tf.nn.relu,
-    #                            name = 'layer_3_conv1')
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth, (1,1),
+                                padding = 'same',
+                                kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                activation=tf.nn.relu,
+                                name = 'layer_3_conv1')
 
-    layer3_up1 = tf.layers.conv2d_transpose(layer3_drop, l3_depth, 3,
+    layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*2  , 3,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -155,7 +159,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                              name = 'layer3_up1')
 
 
-    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, num_classes, 3,
+    layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
+    
+    layer3_up2 = tf.layers.conv2d_transpose(layer3_drop, l3_depth*2, 3,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -184,9 +190,9 @@ def run():
     timestamp = time.strftime("%Y%m%d_%H%M%S");
 
 
-    ontology, colors = read_ontology(args.dataset + '/Ontology.csv')
+    ontology, colors = read_ontology(args.dataset + '/Ontology F8.csv')
 
-    class_weights = pickle.load(open(args.dataset + '/../class_weights_44c.p','rb'))
+    class_weights = 1. # pickle.load(open(args.dataset + '/../class_weights_44c.p','rb'))
 
     num_classes = len(ontology)
 
@@ -222,10 +228,13 @@ def run():
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')                                       
     
         image_in, keep_prob,l3_o, l4_o, l7_o = load_vgg(sess, vgg_path);
+
+        print('layer3=',l3_o.shape, ', layer4=', l4_o.shape, ', layer7=',l7_o.shape)
+        
         nn_output = layers(l3_o, l4_o, l7_o, keep_prob, num_classes)
     
         loss, conf_matrix, print_op  = optimize(nn_output, correct_label,  #, n, d, 
-                                          learning_rate, num_classes, class_weights)
+                                          learning_rate, num_classes, class_weights, args.loss)
         
         optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
         #optimizer = tf.train.MomentumOptimizer(learning_rate = learning_rate, momentum = 0.8) 
