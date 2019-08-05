@@ -67,7 +67,12 @@ timestamp = time.strftime("%Y%m%d_%H%M%S");
 
 ontology, colors = read_ontology(args.dataset + '/Ontology.csv')
 
-class_weights = pickle.load(open(args.dataset + '/../class_weights_44c.p','rb'))
+try:
+    class_weights = pickle.load(open(args.dataset + '/class_weights.p','rb'))
+    print('loaded weights for ', len(class_weights), ' classes')
+except:
+    class_weights = 1.
+    pass
 
 num_classes = len(ontology)
 
