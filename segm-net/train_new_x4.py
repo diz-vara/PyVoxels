@@ -8,6 +8,41 @@ import time
 import labels_vox as lbl
 import sys
 
+
+import pickle
+
+from read_ontology import read_ontology
+from train import *
+
+import argparse
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=300, help='Number of epochs to train for')
+parser.add_argument('--dataset', type=str, default="UK-4", help='Dataset you are using.')
+parser.add_argument('--crop_height', type=int, default=768, help='Height of cropped input image to network')
+parser.add_argument('--crop_width', type=int, default=960, help='Width of cropped input image to network')
+parser.add_argument('--batch_size', type=int, default=2, help='Number of images in each batch')
+parser.add_argument('--model_name', type=str, default="OS-44-new", help='Model name')
+parser.add_argument('--learning_rate', type=float, default=0.0001, help='Learning rate')
+parser.add_argument('--prefix', type=str, default="", help='optional prefix to separate n/w')
+parser.add_argument('--suffix', type=str, default="", help='optional suffix to separate n/w')
+parser.add_argument('--loss', type=str, default="crossentropy", help='Loss function [crossentropy]')
+args = parser.parse_args()
+
+
+
+
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
 print('TensorFlow Version: {}'.format(tf.__version__))
@@ -46,7 +81,7 @@ def load_vgg(sess, vgg_path):
 #tests.test_load_vgg(load_vgg, tf)
 
 #%%
-def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
+def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classes):
     """
     Create the layers for a fully convolutional network.  Build skip-layers using the vgg layers.
     :param vgg_layer7_out: TF Tensor for VGG Layer 3 output
@@ -61,6 +96,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     l4_depth = vgg_layer4_out.shape[3].value
     l7_depth = vgg_layer7_out.shape[3].value
 
+
     layer7_conv = tf.layers.conv2d(vgg_layer7_out, l7_depth, 1,
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -68,8 +104,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                 activation=tf.nn.relu,
                                 name='layer7_conv1')
                                 
+    layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
     # upscale to 10 x 36
-    layer7_up = tf.layers.conv2d_transpose(layer7_conv, l4_depth, 4,
+    layer7_up = tf.layers.conv2d_transpose(layer7_drop, l4_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -90,9 +127,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                 activation=tf.nn.relu,
                                 name = 'layer4_conv1')
 
-    
+    #layer4_drop = tf.nn.dropout(layer4_conv, keep_prob=keep_prob)                            
+
+
     # upscale to 20 x 72
-    layer4_up = tf.layers.conv2d_transpose(layer4_conv, l3_depth, 4,
+    layer4_up = tf.layers.conv2d_transpose(layer4_add, l3_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -103,6 +142,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # add upscaled L4                                
     layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
 
+
     # 1x1 convolution of L3 ( 20 x 72)
     layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*4, (1,1),
                                 padding = 'same',
@@ -110,9 +150,27 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
+
+    layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*4  , 3,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up1')
+
+
+    layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
+    
+    layer3_up2 = tf.layers.conv2d_transpose(layer3_drop, l3_depth*2, 3,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up2')
+
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 10,
-                                             strides = (8,8),
+    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
+                                             strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -121,148 +179,90 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     return layer3_up
 #tests.test_layers(layers)
 
-#%%
-
-def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
-    """
-    Build the TensorFLow loss and optimizer operations.
-    :param nn_last_layer: TF Tensor of the last layer in the neural network
-    :param correct_label: TF Placeholder for the correct label image
-    :param learning_rate: TF Placeholder for the learning rate
-    :param num_classes: Number of classes to classify
-    :return: Tuple of (logits, train_op, cross_entropy_loss)
-    """
-    
-    result = tf.reshape(nn_last_layer, (-1, num_classes))
-    labels = tf.reshape(correct_label, (-1, num_classes))
-
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=labels,
-                                                            logits = result,
-                                                            name = "cross-ent")
-    loss = tf.reduce_mean(cross_entropy);
-    optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
-
-    train_op = optimizer.minimize(loss)
-    
-    return result, train_op, loss
-#tests.test_optimize(optimize)
-
-#%%
-
-def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate):
-    """
-    Train neural network and print out the loss during training.
-    :param sess: TF Session
-    :param epochs: Number of epochs
-    :param batch_size: Batch size
-    :param get_batches_fn: Function to get batches of training data.  Call using get_batches_fn(batch_size)
-    :param train_op: TF Operation to train the neural network
-    :param cross_entropy_loss: TF Tensor for the amount of loss
-    :param input_image: TF Placeholder for input images
-    :param correct_label: TF Placeholder for label images
-    :param keep_prob: TF Placeholder for dropout keep probability
-    :param learning_rate: TF Placeholder for learning rate
-    """
-    
-    sess.run(tf.global_variables_initializer())
-    saver = tf.train.Saver();
-
-    #lr = sess.run(learning_rate)
-    #merged = tf.summary.merge_all()
-    lr = 2e-4
-    min_loss = 2.0
-    for epoch in range (epochs):
-        print ('epoch {}  '.format(epoch))
-        print(" LR = {:f}".format(lr))     
-        bnum = 0
-        for image, label in get_batches_fn(batch_size):
-            summary, loss = sess.run([train_op, cross_entropy_loss],
-                                     feed_dict={input_image:image, 
-                                                correct_label:label,
-                                     keep_prob:0.5, learning_rate:lr})
-            sys.stdout.write('\r' + str(bnum) + '  ' + str(loss) + '   \r')
-            bnum += 1
-
-        #writer.add_summary(summary, epoch)                          
-        #lr = lr * 0.9                            
-        print(" Loss = {:g}".format(loss))     
-        print()                        
-        if (loss < min_loss):
-            print("saving at step {:d}".format(epoch))     
-            min_loss = loss;
-            saver.save(sess, data_dir + '/nets/main_m',
-                       global_step=epoch)
-    
-#tests.test_train_nn(train_nn)
 
 #%%
 tf.reset_default_graph();
 
 def run():
-    num_classes = 44 #len(labels)
-    image_shape=(768,960)
-    #data_dir = '/home/avarfolomeev/Data/UK-4-short'
-    runs_dir = '/home/avarfolomeev/Data/UK-4-short/runs'
+
+    tf.reset_default_graph()
+
     timestamp = time.strftime("%Y%m%d_%H%M%S");
 
-    export_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/exports/' + timestamp;
+
+    ontology, colors = read_ontology(args.dataset + '/Ontology F8.csv')
+
+    try:
+        class_weights = pickle.load(open(args.dataset + '/class_weights.p','rb'))
+        print('loaded weights for ', len(class_weights), ' classes')
+    except:
+        class_weights = 1.
+        pass
+
+    num_classes = len(ontology)
+
+    image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
+
+    full_model_name = args.prefix + args.model_name + args.suffix;
+    model_path = args.dataset + '/nets/' + full_model_name;
+
+    data_dir = args.dataset + '/../data/'
+
+    timestamp = time.strftime("%Y%m%d_%H%M%S");
+
 
     # Download pretrained vgg model
     helper.maybe_download_pretrained_vgg(data_dir)
 
-    # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
-    # You'll need a GPU with at least 10 teraFLOPS to train on.
-    #  https://www.cityscapes-dataset.com/
-    builder = tf.saved_model.builder.SavedModelBuilder(export_dir);
+    #builder = tf.saved_model.builder.SavedModelBuilder(model_path);
 
     config = tf.ConfigProto(
        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.92),
        device_count = {'GPU': 1}
     )
 
+    lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
+    open(lr_file,'w').write(str(args.learning_rate))
 
     with tf.Session(config=config) as sess:
+
         vgg_path = os.path.join(data_dir, 'vgg')
-        # Create function to get batches
-        get_batches_fn = helper.gen_batch_function(data_dir,
-                                           'train',image_shape, num_classes)
-    
-    
-        epochs = 1000
-        batch_size = 4
         
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes],
                                        name = 'correct_label')
         learning_rate = tf.placeholder(tf.float32, name='learning_rate')                                       
     
-        # OPTIONAL: Augment Images for better results
-        #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
-    
-    
         image_in, keep_prob,l3_o, l4_o, l7_o = load_vgg(sess, vgg_path);
-        nn_output = layers(l3_o, l4_o, l7_o, num_classes)
-    
-        logits, train_op, loss = optimize(nn_output, correct_label, 
-                                          learning_rate, num_classes)
+
+        print('layer3=',l3_o.shape, ', layer4=', l4_o.shape, ', layer7=',l7_o.shape)
         
+        nn_output = layers(l3_o, l4_o, l7_o, keep_prob, num_classes)
+    
+        loss, conf_matrix, print_op  = optimize(nn_output, correct_label,  #, n, d, 
+                                          learning_rate, num_classes, class_weights, args.loss)
+        
+        optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate) 
+        #optimizer = tf.train.MomentumOptimizer(learning_rate = learning_rate, momentum = 0.8) 
+
+        train_op = optimizer.minimize(loss, name='train_op')
+
         g_vars = tf.global_variables()
+        sess.run(tf.global_variables_initializer())
     
-        print('training')
-        train_nn(sess, epochs, batch_size, get_batches_fn, train_op,
-                 loss, image_in, correct_label, keep_prob, learning_rate)                                          
+        train_nn(sess, full_model_name, args.epochs, args.batch_size, 
+                 args.dataset, image_shape, ontology,
+                 train_op, loss, conf_matrix, print_op, #n,d,
+                 tf.train.Saver(),
+                 image_in, correct_label, nn_output,
+                 keep_prob, learning_rate)                                          
     
+
     
-    
-        # TODO: Save inference data using helper.save_inference_samples
-        print('Saving results')
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, 
-                                      logits, keep_prob, image_in)
     
         
-        print('Saving net:')
-        builder.add_meta_graph_and_variables(sess,
-                                             [tf.saved_model.tag_constants.SERVING])
+        #print('Saving net:')
+        #builder.add_meta_graph_and_variables(sess,
+        #                                     [tf.saved_model.tag_constants.SERVING])
         
         writer = tf.summary.FileWriter('/tmp/log/tf', sess.graph)
         writer.close()
@@ -272,7 +272,10 @@ def run():
     
     
     
-data_dir = '/home/avarfolomeev/Data/UK-4-short'
+    
+    
+
+
 
 if __name__ == '__main__':
     run()
