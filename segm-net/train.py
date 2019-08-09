@@ -107,7 +107,7 @@ def train_nn(sess, net_name, epochs, batch_size,
 
 
             cum_loss += train_loss
-            sys.stdout.write('\rTrain ' + str(bnum) + '  ' + str(train_loss) + '      \r') # + str(_n) + ' ' + str(_d) + '                         \r')
+            sys.stdout.write('\rTrain ' + str(bnum*batch_size) + '  ' + str(train_loss) + '      \r') # + str(_n) + ' ' + str(_d) + '                         \r')
             sys.stdout.flush()      
             bnum = bnum + 1  
         train_loss = cum_loss / bnum
@@ -128,7 +128,7 @@ def train_nn(sess, net_name, epochs, batch_size,
             intersect = intersect + _intersect
             union = union + _union
 
-            sys.stdout.write('\rVal ' + str(bnum) + '  ' + str(val_loss) + '   \r')
+            sys.stdout.write('\rVal ' + str(bnum*batch_size) + '  ' + str(val_loss) + '   \r')
             sys.stdout.flush()      
             cum_loss += val_loss
             bnum = bnum + 1    
