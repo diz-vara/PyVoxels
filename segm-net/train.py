@@ -251,6 +251,7 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights, l
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     labels = tf.reshape(corr_label, [-1,num_classes])
+    labels = tf.cast(labels, tf.float32)
     labels0 = labels[:,0];
     class_filter = tf.squeeze(tf.where(tf.not_equal(labels0,1)),1)
 
@@ -271,7 +272,9 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights, l
     if (loss_name == 'dice'):
         loss = dice_loss(gt, prediction, 1.) #class_weights) #,n,d
     else:
-        loss = tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=gt)
+        #loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
+        loss = tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight= class_weights)
+        #loss = loss * class_weights
         loss = tf.reduce_mean(loss)
 
 
