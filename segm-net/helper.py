@@ -162,15 +162,20 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
                     
                     assert(image.shape[:2] == gt_image.shape[:2])                
         
-                    old_shape = image.shape
-                    min_scale = 0.8 # np.max((1.,old_shape[1]/(image_shape[1]*2)) )
-                    max_scale = 1.2 #np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
+                    old_shape = image.shape[:2]
+                    cf = np.array(image_shape)/np.array(old_shape)
+                    min_cf = np.max(cf)
+                    min_scale = max(min_cf, 1)
+
+                    max_scale = 1.5 #np.min((old_shape[1]/image_shape[1], old_shape[0]/image_shape[0]))
                     scale = np.random.uniform(min_scale, max_scale) 
 
-                    image=cv2.resize(image, dsize=None,fx=1./scale, fy=1./scale)
-                    gt_image=cv2.resize(gt_image, dsize=None,fx=1./scale, fy=1./scale,
+                    image=cv2.resize(image, dsize=None,fx=scale, fy=scale)
+                    gt_image=cv2.resize(gt_image, dsize=None,fx=scale, fy=scale,
                                         interpolation=cv2.INTER_NEAREST)
 
+
+                    #print (gt_image.shape)
 
                     col_sum = np.array([image[:,i,:].sum() for i in range(image.shape[1])])
                     row_sum = np.array([image[i,:,:].sum() for i in range(image.shape[0])])
@@ -217,7 +222,7 @@ def gen_batch_function(data_folder, split, image_shape, num_classes):
                     gt_images.append(onehot_label)
                 except:
                     print ("Sizes differ in ", image_file)
-                    print (image.shape[:2] == gt_image.shape[:2])
+                    print (image.shape[:2], gt_image.shape[:2])
                     i = i -1
                     pass
     
