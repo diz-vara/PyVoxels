@@ -191,7 +191,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         if (loss < min_loss):
             print("saving at step {:d}".format(epoch))     
             min_loss = loss;
-            saver.save(sess, '/home/avarfolomeev/Data/USA/LA-aug/nets/main_u',
+            saver.save(sess, data_dir + '/nets/main_m',
                        global_step=epoch)
     
 #tests.test_train_nn(train_nn)
@@ -200,10 +200,10 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 tf.reset_default_graph();
 
 def run():
-    num_classes = 43 #len(labels)
+    num_classes = 44 #len(labels)
     image_shape=(768,960)
-    data_dir = '/home/avarfolomeev/Data/USA/data'
-    runs_dir = '/home/avarfolomeev/Data/USA/LA-aug/nets/LA-aug/runs'
+    #data_dir = '/home/avarfolomeev/Data/UK-4-short'
+    runs_dir = '/home/avarfolomeev/Data/UK-4-short/runs'
     timestamp = time.strftime("%Y%m%d_%H%M%S");
 
     export_dir = '/media/avarfolomeev/storage/Data/Segmentation/UK/exports/' + timestamp;
@@ -225,7 +225,7 @@ def run():
     with tf.Session(config=config) as sess:
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function('/home/avarfolomeev/Data/USA/LA-aug/',
+        get_batches_fn = helper.gen_batch_function(data_dir,
                                            'train',image_shape, num_classes)
     
     
@@ -272,10 +272,7 @@ def run():
     
     
     
-    
-    
-
-
+data_dir = '/home/avarfolomeev/Data/UK-4-short'
 
 if __name__ == '__main__':
     run()
