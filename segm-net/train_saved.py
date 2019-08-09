@@ -70,6 +70,7 @@ ontology, colors = read_ontology(args.dataset + '/Ontology.csv')
 try:
     class_weights = pickle.load(open(args.dataset + '/class_weights.p','rb'))
     print('loaded weights for ', len(class_weights), ' classes')
+    class_weights[0] = 0;
 except:
     class_weights = 1.
     pass

@@ -104,9 +104,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name='layer7_conv1')
                                 
-    layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
+    #layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
     # upscale to 10 x 36
-    layer7_up = tf.layers.conv2d_transpose(layer7_drop, l4_depth, 4,
+    layer7_up = tf.layers.conv2d_transpose(layer7_conv, l4_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -127,11 +127,11 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name = 'layer4_conv1')
 
-    layer4_drop = tf.nn.dropout(layer4_conv, keep_prob=keep_prob)                            
+    #layer4_drop = tf.nn.dropout(layer4_conv, keep_prob=keep_prob)                            
 
 
     # upscale to 20 x 72
-    layer4_up = tf.layers.conv2d_transpose(layer4_drop, l3_depth, 4,
+    layer4_up = tf.layers.conv2d_transpose(layer4_add, l3_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -144,37 +144,44 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
 
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*4, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
 
-    layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*2  , 3,
-                                             strides = (2,2),
-                                             padding = 'same',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             name = 'layer3_up1')
-
-
-    layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
-    
-    layer3_up2 = tf.layers.conv2d_transpose(layer3_drop, l3_depth*2, 3,
-                                             strides = (2,2),
-                                             padding = 'same',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             name = 'layer3_up2')
-
-    # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
-                                             strides = (2,2),
+    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes  , 10,
+                                             strides = (8,8),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              name = 'layer3_up')
+
+    # layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*4  , 3,
+    #                                          strides = (2,2),
+    #                                          padding = 'same',
+    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+    #                                          name = 'layer3_up1')
+
+
+    # layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
+    
+    # layer3_up2 = tf.layers.conv2d_transpose(layer3_drop, l3_depth*2, 3,
+    #                                          strides = (2,2),
+    #                                          padding = 'same',
+    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+    #                                          name = 'layer3_up2')
+
+    # # upscale to original 160 x 572
+    # layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
+    #                                          strides = (2,2),
+    #                                          padding = 'same',
+    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+    #                                          name = 'layer3_up')
                                 
     return layer3_up
 #tests.test_layers(layers)
@@ -192,7 +199,13 @@ def run():
 
     ontology, colors = read_ontology(args.dataset + '/Ontology F8.csv')
 
-    class_weights = 1. # pickle.load(open(args.dataset + '/../class_weights_44c.p','rb'))
+    try:
+        class_weights = pickle.load(open(args.dataset + '/class_weights.p','rb'))
+        print('loaded weights for ', len(class_weights), ' classes')
+        class_weights[0] = 0;
+    except:
+        class_weights = 1.
+        pass
 
     num_classes = len(ontology)
 
