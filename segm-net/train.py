@@ -43,11 +43,16 @@ def train_nn(sess, net_name, epochs, batch_size,
     :param learning_rate: TF Placeholder for learning rate
     """
     
+    nets_dir = dataset_dir + '/nets/'
+    try:
+        os.makedirs(nets_dir)
+    except:
+        pass
 
     dataset_file = dataset_dir + '/dataset.txt'
-    save_net = dataset_dir + '/nets/' + net_name;
-    min_loss_file = dataset_dir + '/nets/' + net_name + '_min_loss.txt';
-    lr_file = dataset_dir + '/nets/' + net_name + '_lr.txt';
+    save_net = nets_dir + net_name;
+    min_loss_file = nets_dir + net_name + '_min_loss.txt';
+    lr_file = nets_dir + net_name + '_lr.txt';
     
     merged = tf.summary.merge_all()
     lr = 0.1
@@ -273,7 +278,7 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights, l
         loss = dice_loss(gt, prediction, 1.) #class_weights) #,n,d
     else:
         #loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-        loss = tf.nn.weighted_cross_entropy_with_logits(labels, logits, pos_weight= class_weights)
+        loss = tf.nn.weighted_cross_entropy_with_logits(gt, prediction, pos_weight= class_weights)
         #loss = loss * class_weights
         loss = tf.reduce_mean(loss)
 
