@@ -54,6 +54,11 @@ parser.add_argument('--loss', type=str, default="crossentropy", help='Loss funct
 
 args = parser.parse_args()
 
+if (len(args.prefix) > 0 and args.prefix[0] != '_'):
+    args.prefix = args.prefix + '_';
+
+if (len(args.suffix) > 0 and args.suffix[-1] != '_'):
+    args.suffix = '_' + args.suffix;
 
 
 #%%
@@ -80,7 +85,7 @@ num_classes = len(ontology)
 image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
 
 #full_model_name = args.prefix + args.model_name + "_" + str(args.crop_width) + "x" + str(args.crop_height) + args.suffix;
-full_model_name = args.prefix + args.model_name + args.suffix;
+full_model_name = args.prefix + args.model_name + '_' + args.loss + args.suffix;
 model_path = args.dataset + '/nets/' + full_model_name;
 
 

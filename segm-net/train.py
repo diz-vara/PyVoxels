@@ -70,7 +70,7 @@ def train_nn(sess, net_name, epochs, batch_size,
     train_summary = tf.summary.scalar('train_loss', loss)
     val_summary = tf.summary.scalar('val_loss', loss)
 
-    writer = tf.summary.FileWriter(dataset_dir + '/logs')
+    writer = tf.summary.FileWriter(dataset_dir + '/logs/' + net_name)
 
     print('training')
 

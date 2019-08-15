@@ -40,11 +40,6 @@ parser.add_argument('--suffix', type=str, default="", help='optional suffix to s
 parser.add_argument('--loss', type=str, default="crossentropy", help='Loss function [crossentropy]')
 args = parser.parse_args()
 
-if (len(args.prefix) > 0 and args.prefix[0] != '_'):
-    args.prefix = args.prefix + '_';
-
-if (len(args.suffix) > 0 and args.suffix[-1] != '_'):
-    args.suffix = '_' + args.suffix;
 
 
 
@@ -109,9 +104,9 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name='layer7_conv1')
                                 
-    #layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
+    layer7_drop = tf.nn.dropout(layer7_conv, keep_prob=keep_prob)                            
     # upscale to 10 x 36
-    layer7_up = tf.layers.conv2d_transpose(layer7_conv, l4_depth, 4,
+    layer7_up = tf.layers.conv2d_transpose(layer7_drop, l4_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -120,12 +115,12 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                              name = 'layer7_up')
 
     # add upscaled L7
-    layer4_add = tf.add(vgg_layer4_out, layer7_up, name = 'layer4_add')
+    layer4_concat = tf.concat([vgg_layer4_out, layer7_up], -1, name = 'layer4_concat')
 
                                 
                                 
     # 1x1 convolution of L4 ( 10 x 36 )
-    layer4_conv = tf.layers.conv2d(layer4_add, l4_depth, (1,1),
+    layer4_conv = tf.layers.conv2d(layer4_concat, l4_depth, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -136,7 +131,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
 
 
     # upscale to 20 x 72
-    layer4_up = tf.layers.conv2d_transpose(layer4_add, l3_depth, 4,
+    layer4_up = tf.layers.conv2d_transpose(layer4_conv, l3_depth, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -145,48 +140,44 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                              name = 'layer4_up')
 
     # add upscaled L4                                
-    layer3_add = tf.add(vgg_layer3_out, layer4_up, name = 'layer3_add')
+    layer3_concat = tf.concat([vgg_layer3_out, layer4_up], -1, name = 'layer3_concat')
 
 
-    # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_add, l3_depth*4, (1,1),
-                                padding = 'same',
-                                kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                activation=tf.nn.relu,
-                                name = 'layer_3_conv1')
 
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes  , 10,
-                                             strides = (8,8),
+    # # 1x1 convolution of L3 ( 20 x 72)
+    # layer3_conv = tf.layers.conv2d(layer3_concat, l3_depth*4, (1,1),
+    #                             padding = 'same',
+    #                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+    #                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+    #                             activation=tf.nn.relu,
+    #                             name = 'layer_3_conv1')
+
+    
+    layer3_up1 = tf.layers.conv2d_transpose(layer3_concat, l3_depth*4  , 5,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up1')
+
+
+    #layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
+    
+    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, l3_depth*2, 5,
+                                             strides = (2,2),
+                                             padding = 'same',
+                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
+                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
+                                             name = 'layer3_up2')
+
+    
+    # upscale to original 160 x 572
+    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 5,
+                                             strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                              name = 'layer3_up')
-
-    # layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*4  , 3,
-    #                                          strides = (2,2),
-    #                                          padding = 'same',
-    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-    #                                          name = 'layer3_up1')
-
-
-    # layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
-    
-    # layer3_up2 = tf.layers.conv2d_transpose(layer3_drop, l3_depth*2, 3,
-    #                                          strides = (2,2),
-    #                                          padding = 'same',
-    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-    #                                          name = 'layer3_up2')
-
-    # # upscale to original 160 x 572
-    # layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
-    #                                          strides = (2,2),
-    #                                          padding = 'same',
-    #                                          kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-    #                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-    #                                          name = 'layer3_up')
                                 
     return layer3_up
 #tests.test_layers(layers)
@@ -207,7 +198,6 @@ def run():
     try:
         class_weights = pickle.load(open(args.dataset + '/class_weights.p','rb'))
         print('loaded weights for ', len(class_weights), ' classes')
-        class_weights[0] = 0;
     except:
         class_weights = 1.
         pass
@@ -216,7 +206,7 @@ def run():
 
     image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
 
-    full_model_name = args.prefix + args.model_name + '_' + args.loss + args.suffix;
+    full_model_name = args.prefix + args.model_name + args.suffix;
     model_path = args.dataset + '/nets/' + full_model_name;
 
     data_dir = args.dataset + '/../data/'
