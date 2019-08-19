@@ -35,12 +35,19 @@ def _parse_function(filename):
   try:  
       image_string = tf.read_file(filename)
       image_decoded = tf.image.decode_jpeg(image_string)
-      image_resized = tf.image.resize_images(image_decoded, image_shape)
+      sh = tf.shape(image_decoded)[:2] //32*32
+      if (image_shape[0] == 0 or image_shape[1] == 0):
+          #image_resized = tf.image.resize_images(image_decoded, sh)
+          #image_r = tf.image.crop_to_bounding_box(image_decoded,0,0,sh[0]-32, sh[1])
+          image_r = image_decoded[:sh[0], :sh[1],:]
+          image_resized = tf.cast(image_r, dtype=tf.float32) #tf. tf.image.resize_images(image_r, sh)
+      else:
+          image_resized = tf.image.resize_images(image_decoded, image_shape)
   except:
       print("Error reading file ", filename)
       image_resized = None
       image_decoded = None
-  return image_resized, filename, image_decoded
+  return image_resized, filename
 
 #%%
 
@@ -86,7 +93,6 @@ image_shape= (args.crop_height,args.crop_width) # (1024,1216)
 data_folder= os.path.join(args.dataset, args.ride, args.camera)
 output_folder = os.path.join(args.output,args.ride, args.camera)
 
-image_shape= (768,960) #(1024,1216)
 dataname = 'data/'
 
 print("reading from  ", os.path.join(data_folder, dataname));
@@ -139,9 +145,9 @@ batch_dataset = dataset.batch(args.batchsize)
     
 iterator = batch_dataset.make_one_shot_iterator()
 
-images,filenames,original_images = iterator.get_next()
+images,filenames = iterator.get_next()
 
-image0=original_images[0]
+image0=images[0]
 
 
 if (len(load_net) == 0):
@@ -161,6 +167,7 @@ with open(os.path.join(output_folder, road_name, "segm.txt"),'a') as seg_file :
 csvname = os.path.join(args.output, args.ride, args.ride + "_" + args.camera + ".csv")
 
 one = tf.constant(1.0, dtype = float)
+
 restorer = tf.train.import_meta_graph(meta, input_map = {'image_input:0':images, 'keep_prob:0':one })
 
 sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
@@ -176,18 +183,18 @@ argmax = tf.math.argmax(softmax, axis=3)
 argmax = tf.expand_dims(argmax,-1)
 
 cnt = args.start
+print("  STARTING: ")
 
 with  open(csvname,"a") as csvfile:
 
     while (True):
         try:
-            out,names,im0 = sess.run([argmax,filenames,original_images])
+            out,names,im0 = sess.run([argmax,filenames,images])
             out_colors = colors[out[0,:,:,0]]    
             original_shape = im0[0].shape[1::-1]
-            out_colors = cv2.resize(out_colors, original_shape, interpolation=cv2.INTER_NEAREST)
+            #out_colors = cv2.resize(out_colors, original_shape, interpolation=cv2.INTER_NEAREST)
             colors_img = scipy.misc.toimage(out_colors, mode="RGBA")
             overlay_im = scipy.misc.toimage(im0[0])
-            
             overlay_im.paste(colors_img,box=None,mask=colors_img)
             
             out_file = names[0].decode('utf-8').replace(dataname,overlay_name).replace(data_folder, output_folder)
