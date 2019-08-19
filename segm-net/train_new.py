@@ -217,7 +217,13 @@ def run():
     image_shape=(args.crop_height, args.crop_width) #NB! Now it is height x width !!!
 
     full_model_name = args.prefix + args.model_name + '_' + args.loss + args.suffix;
-    model_path = args.dataset + '/nets/' + full_model_name;
+    nets_dir = args.dataset + '/nets/'
+    try:
+        os.makedirs(nets_dir)
+    except:
+        pass
+
+    model_path = nets_dir + full_model_name;
 
     data_dir = args.dataset + '/../data/'
 
@@ -230,11 +236,11 @@ def run():
     #builder = tf.saved_model.builder.SavedModelBuilder(model_path);
 
     config = tf.ConfigProto(
-       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.92),
+       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.90),
        device_count = {'GPU': 1}
     )
 
-    lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
+    lr_file = nets_dir + full_model_name + '_lr.txt';
     open(lr_file,'w').write(str(args.learning_rate))
 
     with tf.Session(config=config) as sess:

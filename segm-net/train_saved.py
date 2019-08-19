@@ -95,7 +95,7 @@ open(lr_file,'w').write(str(args.learning_rate))
 alfa = (127,) #semi-transparent
 
 config = tf.ConfigProto(
-   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.95),
+   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.90),
    device_count = {'GPU': 1}
 )
 sess = tf.Session(config = config)

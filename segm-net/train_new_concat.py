@@ -149,35 +149,16 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
 
 
     # 1x1 convolution of L3 ( 20 x 72)
-    layer3_conv = tf.layers.conv2d(layer3_concat, l3_depth*4, (1,1),
+    layer3_conv = tf.layers.conv2d(layer3_concat, l3_depth*2, (1,1),
                                 padding = 'same',
                                 kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
 
-    
-    layer3_up1 = tf.layers.conv2d_transpose(layer3_conv, l3_depth*4  , 3,
-                                             strides = (2,2),
-                                             padding = 'same',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             name = 'layer3_up1')
-
-
-    #layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
-    
-    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, l3_depth*2, 3,
-                                             strides = (2,2),
-                                             padding = 'same',
-                                             kernel_initializer=tf.random_normal_initializer(stddev=0.001),
-                                             kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
-                                             name = 'layer3_up2')
-
-    
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 3,
-                                             strides = (2,2),
+    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes, 10,
+                                             strides = (8,8),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
                                              kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3),
@@ -232,7 +213,7 @@ def run():
     #builder = tf.saved_model.builder.SavedModelBuilder(model_path);
 
     config = tf.ConfigProto(
-       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8),
+       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9),
        device_count = {'GPU': 1}
     )
 
@@ -282,7 +263,7 @@ def run():
         #builder.add_meta_graph_and_variables(sess,
         #                                     [tf.saved_model.tag_constants.SERVING])
         
-        writer = tf.summary.FileWriter(args.dataset + '/nets/' + full_model_name, sess.graph)
+        writer = tf.summary.FileWriter(args.dataset + '/nets/' + full_model_name) #, sess.graph)
         writer.close()
         # OPTIONAL: Apply the trained model to a video
     print('AFTER sesion')

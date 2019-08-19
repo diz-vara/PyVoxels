@@ -77,7 +77,7 @@ def train_nn(sess, net_name, epochs, batch_size,
 
     for epoch in range (epochs):
         
-        print ('epoch {} ({}) '.format(epoch+base, epoch))
+        print (net_name + ' epoch {} ({}) '.format(epoch+base, epoch))
         sys.stdout.flush()
         
         get_train_batches_fn = build_batch_fn(dataset_file, 'train',
@@ -275,7 +275,7 @@ def optimize(nn_output, corr_label, learning_rate, num_classes, class_weights, l
     
     print ('Using loss = ', loss_name)
     if (loss_name == 'dice'):
-        loss = dice_loss(gt, prediction, 1.) #class_weights) #,n,d
+        loss = dice_loss(labels, logits, 1.) #class_weights) #,n,d
     else:
         #loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
         loss = tf.nn.weighted_cross_entropy_with_logits(gt, prediction, pos_weight= class_weights)
