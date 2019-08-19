@@ -153,7 +153,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
     #                             name = 'layer_3_conv1')
 
     
-    layer3_up1 = tf.layers.conv2d_transpose(layer3_concat, l3_depth*4  , 5,
+    layer3_up1 = tf.layers.conv2d_transpose(layer3_concat, l3_depth*4  , 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -163,7 +163,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
 
     #layer3_drop = tf.nn.dropout(layer3_up1, keep_prob=keep_prob)
     
-    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, l3_depth*2, 5,
+    layer3_up2 = tf.layers.conv2d_transpose(layer3_up1, l3_depth*2, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
@@ -172,7 +172,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
 
     
     # upscale to original 160 x 572
-    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 5,
+    layer3_up = tf.layers.conv2d_transpose(layer3_up2, num_classes, 4,
                                              strides = (2,2),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),

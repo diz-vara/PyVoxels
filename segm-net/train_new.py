@@ -156,7 +156,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, keep_prob, num_classe
                                 activation=tf.nn.relu,
                                 name = 'layer_3_conv1')
 
-    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes  , 10,
+    layer3_up = tf.layers.conv2d_transpose(layer3_conv, num_classes  , 16,
                                              strides = (8,8),
                                              padding = 'same',
                                              kernel_initializer=tf.random_normal_initializer(stddev=0.001),
