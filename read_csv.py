@@ -14,11 +14,24 @@ from pyquaternion import Quaternion
 import struct
 
 
+#%%
+def read_csv(filename, delim = ' '):
+    with open (filename) as csvfile:
+        pclreader = csv.reader(csvfile, delimiter = delim)
+        points = []
+        for row in pclreader:
+            pnt = np.array([float(p) for p in row if len(p) > 0])
+            if (len(pnt) > 0):
+                points.append(pnt)  
+
+    return np.array(points)
+    
+
 
 #%%
-def read_matrix(filename):
+def read_matrix(filename, delim = ' '):
     with open (filename) as csvfile:
-        pclreader = csv.reader(csvfile, delimiter = ' ')
+        pclreader = csv.reader(csvfile, delimiter = delim)
         points = []
         for row in pclreader:
             pnt = np.array([float(p) for p in row if len(p) > 0])
