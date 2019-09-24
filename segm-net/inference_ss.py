@@ -30,7 +30,13 @@ def _parse_function(filename):
   try:  
       image_string = tf.read_file(filename)
       image_decoded = tf.image.decode_jpeg(image_string)
-      image_resized = tf.image.resize_images(image_decoded, image_shape)
+      sh = tf.shape(image_decoded)[:2] //32*32
+      if (image_shape[0] == 0 or image_shape[1] == 0):
+          image_r = image_decoded[:sh[0], :sh[1],:]
+          image_resized = tf.cast(image_r, dtype=tf.float32)
+          image_decoded = image_r
+      else:
+          image_resized = tf.image.resize_images(image_decoded, image_shape)
   except:
       print("Error reading file ", filename)
       image_resized = None
@@ -51,7 +57,7 @@ except:
 parser = argparse.ArgumentParser()
 parser.add_argument('--checkpoint_path', type=str, default= base_dir + '/Segmentation/UK/nets/BiSeNet_ResNet101/0290/', required=False, help='The path to the latest checkpoint weights for your model.')
 parser.add_argument('--dataset', type=str, default= base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
-parser.add_argument('--output', type=str, default=base_dir + "/Voxels/201904_UK", required=False, help='The dataset you are using')
+parser.add_argument('--output', type=str, default="", required=False, help='The dataset you are using')
 parser.add_argument('--ride', type=str, default="20190403_064438", required=False, help='ride name')
 parser.add_argument('--camera',type=str, default="argus_cam_0", required=False, help='camera name')
 parser.add_argument('--crop_width',type=int, default=960, required=False, help='crop width')
@@ -64,6 +70,11 @@ parser.add_argument('--ontology',type=str, default=base_dir+'/Segmentation/UK/13
 parser.add_argument('--batchsize',type=int, default=5, required=False, help='batch size [5]')
 
 args = parser.parse_args()
+
+
+if (len (args.output)< 1):
+    args.output = args.dataset
+
 
 ontology, _ = read_ontology(args.ontology)
 
@@ -119,17 +130,16 @@ total_num = len(l)
 l = l[args.start:args.end]
 
 
-road_name = 'Xroad/'
-overlay_name = 'Xoverlay/'
-
 try:
     os.makedirs(os.path.join(camera_folder,road_name))
 except:
+    print ("can't create folder", os.path.join(camera_folder,road_name))
     pass        
 
 try:
     os.makedirs(os.path.join(camera_folder,overlay_name))
 except:
+    print ("can't create folder", os.path.join(camera_folder,overlay_name))
     pass        
 
 
@@ -201,6 +211,7 @@ with  open(csvname,"a") as csvfile:
             out,names,im0 = sess.run([argmax,filenames,original_images])
             out_colors = colors[out[0,:,:,0]]    
             original_shape = im0[0].shape[1::-1]
+            print (im0[0].shape, out_colors.shape)
             out_colors = cv2.resize(out_colors, original_shape, interpolation=cv2.INTER_NEAREST)
             colors_img = scipy.misc.toimage(out_colors, mode="RGBA")
             overlay_im = scipy.misc.toimage(im0[0])
