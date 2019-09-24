@@ -219,10 +219,10 @@ def run():
 
     #builder = tf.saved_model.builder.SavedModelBuilder(model_path);
 
-    config = tf.ConfigProto(
-       gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.92),
-       device_count = {'GPU': 1}
-    )
+    config = tf.ConfigProto()
+    #    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.92),
+    #    device_count = {'GPU': 1}
+    # )
 
     lr_file = args.dataset + '/nets/' + full_model_name + '_lr.txt';
     open(lr_file,'w').write(str(args.learning_rate))

@@ -198,7 +198,7 @@ def ce_loss(labels, logits, weights = 1.):
 
 
 def dice_loss(labels, logits, weights = 1.):
-    smooth = tf.constant(1.)
+    smooth = tf.constant(1000.)
     epsilon = tf.constant(1e-12)
     labels = tf.cast(labels, tf.float32)
     not_labels = tf.cast(1-labels, tf.float32)
