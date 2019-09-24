@@ -33,7 +33,7 @@ def read_ontology(fname, delimiter = ','):
 
     with open (fname) as csvfile:
         ont_reader = csv.reader(csvfile, delimiter = delimiter)
-        labels = [ sLabel(  'unlabeled'      ,  0 , (    0,    0,    0) )]
+        labels = [ sLabel(  'unlabeled'      ,  0 , (    0,    0,    0), 0 )]
         next(ont_reader,None)
         for row in ont_reader:
             hex_color = row[0]
