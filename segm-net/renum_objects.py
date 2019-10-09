@@ -55,33 +55,38 @@ def renum_objects(base_dir, in_dir, out_dir, ontology, min_size = 100):
         for i in range(num_classes):
             if (has_objects[i]):
                 _class = classes[i]
-                idx = np.logical_and(np.equal(_class,_classes),_objectness)
-                idx = np.uint8(idx)
-                _l = np.multiply(_objects, idx)
+                _class_objects_mask = np.logical_and(np.equal(_class,_classes),_objectness)
+                _class_objects_mask = np.uint8(_class_objects_mask)
+                _class_objects = np.multiply(_objects, _class_objects_mask)
                 #here I've got All objects, I want filter out small ones
                 # and re-number !!!
-                new_obj = np.zeros_like(_l)
+                _new_class_objects = np.zeros_like(_class_objects)
                 new_idx = 1;
-                for obj in np.arange (1,np.max(_objects)):
-                    current_obj = np.int8(np.equal(obj,_objects)) 
-                    if ( np.sum(np.int32(current_obj)) >= min_size):
-                        new_obj = np.add(new_obj,current_obj * new_idx);
+                for obj in np.arange (1,np.max(_class_objects)+1):
+                    _current_obj = np.int8(np.equal(obj,_class_objects))
+                    _curr_size = np.sum(np.int32(_current_obj))
+                    #print (_class, new_idx, _curr_size)
+                    if ( _curr_size >= min_size):
+                        _new_class_objects = np.add(_new_class_objects,_current_obj * new_idx);
                         new_idx += 1
                 
-                _l = np.add(new_obj, num_instances)
-                _l = np.multiply(_l, idx)
+                _new_objects_mask = np.uint8(np.not_equal(_new_class_objects,0))
+                _new_class_objects = np.add(_new_class_objects, num_instances)
+                        
+                _new_class_objects = np.multiply(_new_class_objects, _new_objects_mask) #remove zeros
                 
                 
-                new_objects = np.add(new_objects, _l)
+                new_objects = np.add(new_objects, _new_class_objects)
                 num_instances = np.max(new_objects)
                 
-        print (num_instances, label_file)
 
         label_in[:,:,1] = new_objects
 
         plt.imsave(os.path.join(out_dir, label_file),label_in)
+        cnt += 1
+        print (num_instances, label_file, cnt, end_string)
     
-    
+
 
 
 
