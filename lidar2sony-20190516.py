@@ -16,6 +16,7 @@ import numpy as np
 from calibrate_camera import *
 from process_board_cloud import *
 from calib2json import *
+from scatt3d import *
 
 
 
@@ -150,11 +151,12 @@ ax1= f1.gca()
 ax3=f3.add_subplot(111,projection='3d')
 
 
-base_dir = 'e:/data/Voxels/20190516_cal_cam1/'
+base_dir = 'e:/data/Voxels/20190410_cal/'
+#base_dir = 'e:/data/Voxels/20190516_cal_cam1/'
 r180=np.matrix([[-1,0,0],[0,-1,0],[0,0,1]])
 #from process_board_cloud import *
 
-camera = 'cam_1'
+camera = 'cam_0'
 angle = np.radians(0); #180+90); # 180-45, 180, 180+45 
 
 
@@ -177,7 +179,8 @@ assert (csvnames == jpgnames)
 
 
 
-rot,t = _proc_cal_idx([0,1,5,6,7,8,9,10,20,19,17,15,13],r180)
+rot,t = _proc_cal_idx([0,1])
+#rot,t = _proc_cal_idx([0,1,5,6,7,8,9,10,20,19,17,15,13],r180)
 #[[ 1.33418012  1.4054811  -1.13807515]] 
 # [[-0.04419182 -0.10124581 -0.2294884 ]]
 #reproj error = 0.20974668691942583

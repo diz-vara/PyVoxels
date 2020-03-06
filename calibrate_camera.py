@@ -24,16 +24,25 @@ def calcCorners(nx,ny, sqSide = 40):
     return np.array(objCorners, dtype=np.float32)      
 
 #%%
-def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, table = None):
+  # cv2.CALIB_TILTED_MODEL
+  # cv2.CALIB_RATIONAL_MODEL
+  # cv2.CALIB_THIN_PRISM_MODEL
+
+def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, 
+              table = None,
+              model=cv2.CALIB_TILTED_MODEL,
+              scale  = 1.,
+              draw_fig=None, nCols = 5, sqSide = 40.):
+    
+    
+    if (nSamples > 0 and nCols > nSamples):
+        nCols = nSamples
     
     #we can skip it here, but for real calibration FAST_CHECK is important!!
     flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
-    #flagCorners = flagCorners | cv2.CALIB_CB_NORMALIZE_IMAGE | cv2.CALIB_CB_FILTER_QUADS
     #enable additional coefficients
     flagCalib = 0
-    #flagCalib = flagCalib | cv2.CALIB_RATIONAL_MODEL
-    #flagCalib = flagCalib | cv2.CALIB_THIN_PRISM_MODEL
-    flagCalib = flagCalib | cv2.CALIB_TILTED_MODEL
+    flagCalib = flagCalib | model 
     
     nDist = 8
     
@@ -53,45 +62,62 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, tab
     start = int(np.random.uniform(step))
     
     file_list = file_list[start::step]
+    term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
     
     np.random.shuffle(file_list)
     if (nSamples > 0):
         file_list = file_list[:nSamples]
+    else:
+        nSamples = len (file_list)
+        
+    nRows = nSamples // nCols
+    if ( nSamples % nCols):
+        nRows += 1
+        
+    ax = ()  
+    if (draw_fig):
+        draw_fig.clf()
+        ax = draw_fig.subplots(nRows, nCols) 
 
     #read images and try to find corneres in each of them        
+    cnt = 0
     for entry in file_list:
         img = cv2.imread(entry)
         if (not table is None):
             img = cv2.LUT(img, table)
-        img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        shape = img.shape[0:2]
-        _nx = nx
-        _ny = ny
-        ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
+        grey = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        
+        
+        shape = img.shape[1::-1]
+        ret, corners = cv2.findChessboardCorners(grey, (nx, ny), flagCorners)
         if (ret):
-            term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
-            cv2.cornerSubPix(img,corners,(_nx,_ny), (-1,-1),term)
+            cv2.cornerSubPix(grey,corners,(nx,ny), (-1,-1),term)
+
+        
+        if (scale <= 0):
+            scale = 1.
+
                              
         name = os.path.split(entry)[1]
         print(name, ret)
-        #plt.imshow(img, cmap = 'gray')
-        #if (not ret):
-        #    _ny = ny - 1
-        #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
-        #    print((_nx,_ny),entry.name,  ret)
-            
-        #if (not ret):
-        #    _nx = nx - 1
-        #    _ny = ny
-        #    ret, corners = cv2.findChessboardCorners(img, (_nx,_ny), flagCorners)
-        #    print((_nx,_ny),entry.name, ret)
 
+        row = cnt // nCols
+        col = cnt % nCols
         if (ret):
             #corners found - add object and image coordinates
-            print("adding ", name, (_nx,_ny))
-            objPoints.append(calcCorners(_nx,_ny))
+            print("adding ", name, shape)
+            objPoints.append(calcCorners(nx,ny, sqSide))
             imgPoints.append(corners)
             files.append(entry)
+            if draw_fig is not None:
+                cv2.drawChessboardCorners(img,(nx,ny), corners, ret)
+                if (nRows > 1):
+                    ax[row,col].imshow(img )
+                else:
+                    ax[col].imshow(img )
+                cv2.imwrite("t/"+name, img);
+                #plt.waitforbuttonpress()
+        cnt += 1
                 
     #return files, np.array(imgPoints)
 
@@ -100,12 +126,12 @@ def calibrate(cal_dir = './camera_cal', nx=9, ny=6, nSamples = -1, step = 1, tab
     #all corners found - build calibration matrix and 
     #calculate distortion coeffs
     dcf = np.zeros((1,nDist), np.float64)
-    mtx = np.zeros((3,3), np.float64)
-    ret, mtx, dist, rv, tv = cv2.calibrateCamera(objPoints, imgPoints, shape, 
-                                                 mtx, distCoeffs=dcf, 
+    
+    ret, mtx, dist, rv, tv = cv2.calibrateCamera(objPoints, np.array(imgPoints)*scale, shape, 
+                                                 np.eye(3), distCoeffs=dcf,
                                                  flags = flagCalib)
-    print('ret=',ret)
-    return ret, mtx, dist
+    print('ret=',ret, ', fx=', mtx[0,0], ", fy=", mtx[1,1])
+    return ret, mtx, dist #, objPoints, imgPoints, shape, flagCalib
 
 #%%    
 def build_lut (invgamma):

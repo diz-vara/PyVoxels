@@ -5,6 +5,7 @@ Created on Mon Nov 26 12:12:57 2018
 @author: avarfolomeev
 """
 
+import cv2
 import matplotlib.pyplot as plt
 import pickle
 import glob

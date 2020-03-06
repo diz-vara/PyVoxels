@@ -8,10 +8,11 @@ Created on Mon Mar 19 14:12:16 2018
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitalization! 
 import cv2
 from pyquaternion import Quaternion
 import struct
+from scatt3d import *
+
 
 
 #%%
@@ -107,50 +108,6 @@ def read_full_cloud_csv(cloud_num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\Lo
 
     
         
-def scatt3d(ax, cloud, clear = False, color = 'g', marker = 'o', size=25):
-    cloud = np.array(cloud)
-    if (clear):
-        ax.cla()    
-    if (len(cloud.shape) < 2):
-        cloud = np.expand_dims(cloud,0)
-    
-        
-    if (color is None):
-        color = np.arange(cloud.shape[0])
-    ax.scatter3D(cloud[:,0], cloud[:,1], cloud[:,2], 
-                 c = color, 
-                 marker=marker,
-                 s=size,edgecolors='face')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    #right_border = np.ceil( max(cloud[:,1]) * 5.) / 5.
-    #left_border = np.floor( min(cloud[:,1]) * 5.) / 5.
-    #ax.set_ylim(left_border, right_border)
-    
-
-
-def scatt2d(ax, cloud, clear = False, color = None, marker = 'o', size=25):
-    cloud = np.array(cloud)
-    if (clear):
-        ax.cla()    
-    if (len(cloud.shape) < 2):
-        cloud = np.expand_dims(cloud,0)
-
-    #color sequence    
-    if (color is None):
-        color = np.arange(cloud.shape[0])
-    ax.scatter(cloud[:,0], cloud[:,1], 
-                 c = color, 
-                 marker=marker,
-                 s=size,edgecolors='face')
-
-def draw(img, corners, imgpts):
-    corner = tuple(corners[0].ravel())
-    img = cv2.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
-    img = cv2.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
-    img = cv2.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
-    return img
 #%%
 def read_image(num, base_dir = 'E:\\Data\\Voxels\\London-cal1\\selected_raw\\'):
     imgname = base_dir + '{:06d}.jpg'.format(num)

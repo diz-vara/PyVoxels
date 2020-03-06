@@ -1,20 +1,20 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Mar 15 14:14:49 2018
 
 @author: avarfolomeev
 """
 
-import csv
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d, Axes3D #<-- Note the capitali
 import scipy.linalg
 import cv2
+from read_csv import read_cloud_file
 
 import numpy.linalg as la
 
-from read_csv import *
+from scatt3d import *
+
 
 def fit_line(line_points, step = 0.1):
     num_points = line_points.shape[0]
@@ -203,15 +203,30 @@ def calc_cloud_grid(num, base_dir, ax=None, overlay=False,London=False, _grid = 
     fname = base_dir + '\\{:06}.csv'.format(num)
     return calc_cloud_grid_f(fname, ax, overlay, London, _grid)
     
-def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False, 
-                      _grid = (0.0597, 11, 0.211),delimiter = ',', rotate=None):
-    cloud = read_cloud_file(fname, delimiter)[0]
+pts_idx_121=np.array([1,6,11,56,61,66,111,116,121])-1
 
-    if (rotate is not None):
-        cloud = cloud * rotate
-    _avg, _rot = get_cloud_rotation(cloud)
+
+
+def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False, 
+                      _grid = (0.0597, 11, 0.211),delimiter = ',', 
+                      rotate=None, VLP32_multi=1.):
+    cloud = read_cloud_file(fname, delimiter)[0]
     
-    flat = rotate_cloud(cloud,_avg,_rot)
+    #NB!! Only for recordings 20191118 (VLP32 with wrong resolution)
+    cloud = cloud * VLP32_multi
+
+
+    _cloud = cloud.copy()
+    if (rotate is not None):
+        _cloud = _cloud * rotate
+
+    if (ax):
+        scatt3d(ax,_cloud,not overlay,'#2f2f2f','.',1)
+
+
+    _avg, _rot = get_cloud_rotation(_cloud)
+    
+    flat = rotate_cloud(_cloud,_avg,_rot)
     
     box = get_box(flat)
     
@@ -231,11 +246,10 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
     
     sorted_grid = sort_grid(rotated_grid,_grid[1])
 
-    if (rotate is not None):
-        sorted_grid = sorted_grid * rotate.transpose()
+    #sorted_grid = sorted_grid[pts_idx_121]
+
     
     if (ax):
-        scatt3d(ax,cloud,not overlay,'#1f1f1f','o',3)
         scatt3d(ax,[0,0,0],False)
         scatt3d(ax,sorted_grid,False,None,'d',49)
         ax.set_xlabel('X')
@@ -250,9 +264,10 @@ def calc_cloud_grid_f(fname, ax=None, overlay=False,London=False,
             ax.text(sorted_grid[i,0],sorted_grid[i,1],sorted_grid[i,2], str(i+1)  )
 
 
-    #rotated_cloud = cloud * box_rot.transpose
+    if (rotate is not None):
+        sorted_grid = sorted_grid * rotate.transpose()
         
-    return cloud, sorted_grid
+    return cloud, sorted_grid, flat, box
      
 #%%
 if 0:
@@ -292,7 +307,6 @@ def draw_3d_board(cloud, ax=None, grid = (0.0597, 11, 0.211)):
     
     #second rotation - to the original box image
     rotated_grid = np.array(rotated_grid * _rot + _avg)
-    #rotated_grid = np.array(rotated_grid*la.pinv(rot).transpose() + avg)
     
     sorted_grid = sort_grid(rotated_grid)
 
@@ -314,24 +328,30 @@ def calc_image_grid(num, base_dir,back,ax=None):
     return load_draw_2d_board(fname,back,ax)
     
 
-def load_draw_2d_board(name,  mtx, dist, back,ax=None, shape = None):
+def load_draw_2d_board(name,  mtx, dist, back,ax=None, shape = None,
+                       scale = 1.):
     img = cv2.imread(name,-1)
-    return draw_2d_board(img, mtx, dist, back, ax, shape)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return draw_2d_board(img, mtx, dist, back, ax, shape, scale)
     
-def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
+def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None, scale = 1.):
     #if (not ax is None):
     #    ax.cla()
 
     #uimg=cv2.undistort(img,mtx,dist)
+    if ( scale > 0 and scale != 1):
+        img = cv2.resize( img, (0,0), fx = scale, fy = scale)
     
 
     if (not shape is None):
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        grey = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        
+        
         flagCorners = cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_ADAPTIVE_THRESH 
         ret,corn_xy = cv2.findChessboardCorners(grey,shape, flagCorners)
         if (ret):
             term = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1)
-            cv2.cornerSubPix(grey,corn_xy,shape, (-1,-1),term)
+            #cv2.cornerSubPix(grey,corn_xy,shape, (-1,-1),term)
         else:
             return
         cxy=np.array(corn_xy[:,0,:]).astype(np.float64)
@@ -343,13 +363,16 @@ def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
         cxy=np.array(corn_xy).transpose().astype(np.float64)
     
     # for resized (enlarged) imnages!!!
-    if (img.shape[0] > 1100):
-        cxy = cxy / 2;
-        img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+    #if (False and img.shape[0] > 1100):
+    #    cxy = cxy / 2;
+    #    img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
     if (not ax is None):
         ax.imshow(img)
         
-    cxy_u = cv2.undistortPoints(np.array([cxy]),mtx,dist, R=mtx)[0]
+        
+    _cxy = cxy.copy()    
+        
+    cxy_u = cv2.undistortPoints(np.array([_cxy]),mtx,dist, R=mtx)[0]
     
 
     #if (not ax is None):
@@ -381,8 +404,11 @@ def draw_2d_board(img, mtx, dist, back=False, ax=None, shape = None):
         final_order = final_order.reshape(shape).transpose().reshape(-1)    
     cxy_ret = cxy[final_order.astype(np.int32)]
     
+    #cxy_ret = cxy_ret[pts_idx_121]
+    #_cxy = _cxy[pts_idx_121]
+    
     if (not ax is None):
-        scatt2d(ax, cxy_ret, False, None, 'd',30)
+        scatt2d(ax, _cxy, False, None, 'd',30)
     
         for i in range(len(cxy_ret)):
             ax.annotate(str(i+1),np.array(cxy_ret[i]))

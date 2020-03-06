@@ -39,7 +39,7 @@ def save_calib_json(fname, front_calib_dict, back_calib_dict=None):
                       "Back":build_j_calib_dict(back_calib_dict)}
 
     with open(fname,"w") as jfile:
-        json.dump(calib_dict, jfile)  
+        json.dump(calib_dict, jfile, indent=4)  
     
         
 def save_calib_list_json(fname, camera_list):
@@ -48,5 +48,5 @@ def save_calib_list_json(fname, camera_list):
 
     c_dict = {"numCameras":len(calib_list), "cameras":calib_list}
     with open(fname,"w") as jfile:
-        json.dump(c_dict, jfile)  
+        json.dump(c_dict, jfile, indent=4)  
             
